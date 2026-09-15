@@ -1,0 +1,1931 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FCQ Digital — Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+  :root{
+    --ink:#16233E;
+    --ink-soft:#5A6B85;
+    --line:#DCE2ED;
+    --line-strong:#AEB9CE;
+    --paper:#F1F4F9;
+    --panel:#FFFFFF;
+    --navy:#002272;
+    --navy-light:#003A8F;
+    --accent:#003A8F;
+    --accent-soft:#E8EDF8;
+    --teal:#2BBFAA;
+    --teal-bg:#E6F8F6;
+    --ok:#1D8A56;
+    --ok-bg:#E5F5EC;
+    --bad:#C8102E;
+    --bad-bg:#FDEAED;
+    --warn:#F2A900;
+    --warn-bg:#FFF8E5;
+    --radius:10px;
+    --shadow:0 1px 2px rgba(18,42,85,0.06), 0 4px 14px rgba(18,42,85,0.06);
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", "Cascadia Mono", Consolas, "Liberation Mono", monospace;
+    --sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:14px;
+    line-height:1.45;
+  }
+  .app{max-width:1180px;margin:0 auto;padding:0 24px 60px;}
+
+  /* Bandeau d'en-tête */
+  .masthead{
+    position:relative;overflow:hidden;
+    display:flex;align-items:center;justify-content:space-between;
+    background:linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+    border-radius:0 0 var(--radius) var(--radius);
+    border-bottom:3px solid var(--teal);
+    padding:18px 26px;margin:0 -24px 0;
+    flex-wrap:wrap;gap:12px;
+  }
+  /* motif de voie : deux files et traverses, très discret */
+  .masthead::before{
+    content:"";position:absolute;inset:0;pointer-events:none;opacity:0.10;
+    background-image:
+      repeating-linear-gradient(90deg, transparent 0 22px, #fff 22px 26px, transparent 26px 48px),
+      linear-gradient(0deg, transparent 0 30%, #fff 30% 32%, transparent 32% 68%, #fff 68% 70%, transparent 70% 100%);
+    background-size:48px 100%, 100% 100%;
+    mask-image:linear-gradient(90deg, transparent 0%, #000 35%, #000 100%);
+    -webkit-mask-image:linear-gradient(90deg, transparent 0%, #000 35%, #000 100%);
+  }
+  .masthead > *{position:relative;}
+  .masthead-title{display:flex;align-items:center;gap:14px;}
+  .masthead-logo{
+    width:44px;height:44px;border-radius:50%;flex-shrink:0;
+    background:var(--navy-light);border:2px solid var(--teal);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .masthead-logo svg{width:26px;height:26px;display:block;}
+  .masthead-eyebrow{
+    font-size:10px;letter-spacing:1.6px;text-transform:uppercase;font-weight:700;color:#8FE0D3;margin-bottom:3px;
+  }
+  .masthead h1{font-size:18px;margin:0;letter-spacing:0.1px;font-weight:700;color:#fff;line-height:1.2;}
+  .masthead .sub{color:#B9C6E3;font-size:11.5px;margin-top:3px;font-style:italic;}
+  .masthead-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
+  .masthead-docid{
+    font-family:var(--mono);font-size:11px;letter-spacing:0.6px;color:#C9D6EC;
+    border:1px solid rgba(255,255,255,0.22);border-radius:6px;padding:5px 9px;
+  }
+  .masthead .btn{
+    background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.28);color:#fff;
+  }
+  .masthead .btn:hover{background:rgba(255,255,255,0.16);border-color:#fff;color:#fff;}
+  .gear-btn{
+    background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.28);color:#fff;
+    width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:15px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .gear-btn:hover{background:rgba(255,255,255,0.16);border-color:#fff;}
+
+  /* Onglets */
+  .tabs{display:flex;gap:4px;margin:0 0 18px;border-bottom:1px solid var(--line);}
+  .tab-btn{
+    font-family:var(--sans);font-size:13px;font-weight:600;
+    padding:10px 18px;background:none;border:none;cursor:pointer;
+    color:var(--ink-soft);border-bottom:3px solid transparent;
+    margin-bottom:-1px;border-radius:6px 6px 0 0;
+  }
+  .tab-btn.active{color:var(--navy);border-bottom-color:var(--teal);background:var(--accent-soft);}
+  .tab-btn:hover{color:var(--navy);}
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:20px 22px;
+    margin-bottom:16px;
+  }
+  .panel h2{
+    display:flex;align-items:center;gap:10px;
+    font-size:11px;text-transform:uppercase;font-weight:700;letter-spacing:1.1px;
+    margin:-20px -22px 18px;padding:12px 22px;
+    background:#F4F4F2;border-bottom:1px solid var(--line);
+    border-radius:var(--radius) var(--radius) 0 0;
+    color:var(--navy);
+  }
+  .panel h2 .badge{
+    width:19px;height:19px;border-radius:5px;background:var(--navy);color:#fff;
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:10px;font-weight:800;flex-shrink:0;
+  }
+  .panel h2 .badge-gold{background:var(--warn);}
+  .req-mark{color:var(--bad);font-weight:800;}
+
+  .field-grid{
+    display:grid;grid-template-columns:repeat(auto-fill, minmax(190px,1fr));
+    gap:14px 16px;
+  }
+  label{display:block;font-size:10.5px;color:var(--ink-soft);margin-bottom:5px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;}
+  input[type=text],input[type=number],input[type=date],select,textarea{
+    width:100%;font-family:var(--sans);font-size:13.5px;font-weight:600;color:var(--ink);
+    border:none;border-bottom:1.5px solid var(--line-strong);background:transparent;
+    padding:5px 1px;border-radius:0;
+  }
+  select{appearance:none;-webkit-appearance:none;-moz-appearance:none;background-image:none;cursor:pointer;}
+  select::-ms-expand{display:none;}
+  input:focus,select:focus,textarea:focus{outline:none;border-bottom:2px solid var(--teal);}
+  textarea{resize:vertical;min-height:44px;border:1px solid var(--line-strong);border-radius:6px;padding:7px 9px;font-weight:400;}
+  ::placeholder{font-style:italic;font-weight:400;color:var(--line-strong);opacity:1;}
+
+  /* Barre de progression : collée au bandeau, comme un état de complétion */
+  .progress-strip{
+    background:var(--panel);border:1px solid var(--line);border-top:none;
+    border-radius:0 0 8px 8px;padding:8px 26px 9px;margin:0 -24px 18px;
+  }
+  .progress-row{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--ink-soft);margin:0;font-weight:600;letter-spacing:0.2px;}
+  .progress-pct{font-family:var(--mono);font-weight:600;color:var(--warn);}
+  .progress-strip.complete .progress-pct{color:var(--teal);}
+  .progress-track{height:5px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:6px;}
+  .progress-fill{height:100%;background:linear-gradient(90deg, var(--navy-light), var(--teal));border-radius:4px;transition:width 0.25s ease;}
+
+  /* Bandeau de tolérances, façon pilule d'info */
+  .tolerance-note{
+    background:var(--accent-soft);border-radius:8px;
+    padding:10px 14px;font-size:12.5px;color:var(--ink);margin-bottom:16px;
+    display:flex;flex-wrap:wrap;align-items:baseline;
+  }
+  .tolerance-note strong{color:var(--navy);}
+  .tolerance-note .seg{padding:0 14px;border-left:1px solid var(--line-strong);}
+  .tolerance-note .seg:first-child{padding-left:0;border-left:none;}
+
+  /* Encart notes importantes */
+  .notes-callout{
+    background:var(--warn-bg);border-radius:8px;padding:11px 14px;margin-bottom:16px;
+    font-size:12px;color:var(--ink);line-height:1.6;
+    display:flex;gap:10px;align-items:flex-start;
+  }
+  .notes-callout .icon{
+    width:18px;height:18px;border-radius:50%;background:var(--warn);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px;
+  }
+
+  table{width:100%;border-collapse:collapse;font-size:12.8px;margin-bottom:10px;border-radius:8px;overflow:hidden;}
+  thead th{
+    text-align:left;font-weight:700;font-size:11px;color:#fff;
+    padding:8px 7px;white-space:nowrap;
+    position:sticky;top:0;background:var(--navy);
+  }
+  tbody td{padding:4px 5px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  tbody tr:nth-child(even){background:#F7F9FC;}
+  tbody tr:hover{background:var(--accent-soft);}
+  td input, td select{
+    font-family:var(--mono);font-size:12.5px;font-weight:600;padding:5px 4px;
+    font-variant-numeric:tabular-nums;min-width:60px;
+    border:none;border-bottom:1.5px solid var(--line);background:transparent;border-radius:0;
+  }
+  td input:focus, td select:focus{outline:none;border-bottom:2px solid var(--teal);}
+  td.label-cell input{font-family:var(--sans);font-weight:400;}
+  td input[data-key="pk"], td input[data-key="coteTheo"], td input[data-key="niveauAvant"],
+  td input[data-key="niveauFF"], td input[data-key="niveauSC1"], td input[data-key="niveauSC2"],
+  td input[data-key="FG"], td input[data-key="FD"]{min-width:86px;}
+  td input[data-key="repere"], td input[data-key="nr"], td input[data-key="travee"],
+  td input[data-key="equerrage"]{min-width:46px;}
+  td input.input-oob{border-bottom:2px solid var(--bad) !important;background:var(--bad-bg);color:var(--bad);}
+  td input.cell-selected, td select.cell-selected{background:var(--teal-bg) !important;border-bottom-color:var(--teal) !important;}
+  .tot-cell{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--teal);font-weight:700;background:var(--teal-bg);}
+  td[data-colkey="epTotal"], th[data-colkey="epTotal"]{background:var(--teal-bg);}
+  th[data-colkey="epTotal"], th[data-colkey="compactage"]{background:#1B9E8E;color:#fff;}
+  th[data-colkey="repere"], th[data-colkey="pk"], th[data-colkey="nr"], th[data-colkey="travee"]{background:var(--navy-light);}
+
+  .status-pill{
+    display:inline-flex;align-items:center;gap:5px;
+    font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;
+    white-space:nowrap;
+  }
+  .status-c{background:var(--ok-bg);color:var(--ok);}
+  .status-nc{background:var(--bad-bg);color:var(--bad);}
+  .status-pending{background:var(--warn-bg);color:var(--warn);}
+  .status-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+  .row-actions button{
+    background:#fff;border:1px solid var(--line-strong);color:var(--ink-soft);
+    font-size:11px;padding:4px 9px;border-radius:20px;cursor:pointer;
+  }
+  .row-actions button + button{margin-left:4px;}
+  .row-actions button:hover{border-color:var(--bad);color:var(--bad);}
+  .btn-delete-circle{
+    width:26px;height:26px;padding:0 !important;border-radius:50% !important;
+    display:inline-flex;align-items:center;justify-content:center;font-size:14px !important;line-height:1;
+  }
+
+  /* Boutons pastille (choix binaires/segmentés) — remplace les menus déroulants pour C/NC, OUI/NON, etc. */
+  .pill-toggle{display:inline-flex;border:1px solid var(--line-strong);border-radius:20px;overflow:hidden;background:#fff;}
+  .pill-opt{
+    background:none;border:none;border-right:1px solid var(--line-strong);
+    padding:6px 13px;font-size:11.5px;font-weight:700;color:var(--ink-soft);cursor:pointer;
+    white-space:nowrap;
+  }
+  .pill-opt:last-child{border-right:none;}
+  .pill-opt:hover{background:var(--paper);}
+  .pill-opt.active{color:#fff;background:var(--navy);}
+  .pill-opt.active.pill-c{background:var(--ok);}
+  .pill-opt.active.pill-nc{background:var(--bad);}
+  td .pill-toggle{width:100%;}
+  td .pill-opt{flex:1;padding:6px 4px;}
+
+  .table-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;}
+  .btn{
+    font-family:var(--sans);font-size:12.5px;font-weight:600;
+    background:var(--panel);border:1px solid var(--line-strong);color:var(--ink);
+    padding:8px 16px;border-radius:20px;cursor:pointer;
+  }
+  .btn:hover{border-color:var(--teal);color:var(--teal);}
+  .btn-primary{background:var(--teal);color:#fff;border-color:var(--teal);}
+  .btn-primary:hover{background:#1B9E8E;color:#fff;border-color:#1B9E8E;}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;}
+
+  .panel h2 .badge-jade{background:var(--teal);}
+  .panel textarea{margin-top:10px;}
+
+  /* ── DÉCISION : deux cases cochables, comme sur la fiche papier ── */
+  .dec-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .dec-opt{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    padding:15px;border:2px solid var(--line-strong);border-radius:6px;background:#fff;
+    cursor:pointer;user-select:none;font-family:var(--sans);font-size:13px;font-weight:800;
+    color:var(--ink-soft);transition:all .2s;letter-spacing:.3px;
+  }
+  .dec-ico{
+    width:22px;height:22px;border-radius:50%;border:2.5px solid currentColor;
+    display:inline-flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;
+  }
+  .dec-opt:hover{border-color:var(--ink);color:var(--ink);}
+  .dec-opt.conf.active{background:var(--teal-bg);border-color:var(--teal);color:#1B9E8E;}
+  .dec-opt.nc.active{background:var(--bad-bg);border-color:var(--bad);color:var(--bad);}
+  .decision-hint{font-size:11px;color:var(--ink-soft);margin-top:10px;font-style:italic;}
+
+  /* ── SIGNATURES : deux boîtes jumelles ── */
+  .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media (max-width:720px){ .sig-grid, .dec-row{grid-template-columns:1fr;} }
+  .sig-box{border:1.5px solid var(--line-strong);border-radius:6px;overflow:hidden;background:#fff;}
+  .sig-head{
+    background:#F4F4F2;padding:6px 12px;border-bottom:1px solid var(--line);
+    font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-soft);
+  }
+  .sig-body{padding:11px 12px;display:flex;flex-direction:column;gap:9px;}
+  .sig-row{display:grid;grid-template-columns:2fr 1fr 1.2fr;gap:10px;}
+  .sig-field label{margin-bottom:3px;}
+  .sig-wrap{position:relative;border:1.5px solid var(--line-strong);border-radius:6px;background:#FAFAF9;overflow:hidden;touch-action:none;}
+  canvas.sig-canvas{display:block;width:100%;height:64px;cursor:crosshair;touch-action:none;}
+  .sig-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:10.5px;color:var(--line-strong);pointer-events:none;font-style:italic;}
+  .btn-sig-clear{
+    position:absolute;top:3px;right:5px;background:none;border:none;cursor:pointer;
+    font-size:10.5px;color:var(--ink-soft);padding:2px 6px;
+  }
+  .btn-sig-clear:hover{color:var(--bad);}
+
+  footer{margin-top:24px;font-size:11.5px;color:var(--ink-soft);text-align:center;}
+
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(18,42,85,0.45);
+    display:flex;align-items:center;justify-content:center;z-index:50;padding:20px;
+  }
+  .modal-overlay[hidden]{display:none;}
+  .modal-panel{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:22px 24px;max-width:480px;width:100%;
+  }
+  .modal-panel h2{font-size:14px;margin:0 0 8px;padding:0;border:none;color:var(--navy);}
+  .modal-note{font-size:12px;color:var(--ink-soft);margin:0 0 16px;line-height:1.5;}
+
+  .anomaly-info{font-size:12px;color:var(--ink-soft);margin-bottom:8px;line-height:1.5;padding:9px 12px;border-radius:8px;background:var(--paper);}
+  .anomaly-info.has-anomalies{background:var(--warn-bg);color:var(--ink);}
+  .cols-panel{display:grid;grid-template-columns:repeat(auto-fill, minmax(170px,1fr));gap:8px 16px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);width:100%;}
+  .cols-panel label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink);margin:0;font-weight:400;}
+  .cols-panel input[type=checkbox]{width:auto;}
+
+  .col-clear-btn{
+    background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;
+    font-size:13px;line-height:1;padding:2px 4px;margin-left:4px;border-radius:2px;
+    vertical-align:middle;
+  }
+  .col-clear-btn:hover{color:#fff;background:rgba(255,255,255,0.15);}
+
+  /* Écrans tactiles (tablette de chantier) : cibles plus grandes, quel que soit la largeur d'écran */
+  @media (pointer: coarse){
+    .btn, .gear-btn, .row-actions button{min-height:40px;padding-top:9px;padding-bottom:9px;}
+    .row-actions button{min-width:44px;}
+    .tab-btn{padding:13px 16px;}
+    td input, td select{min-height:38px;padding:7px 6px;}
+    .col-clear-btn{min-width:30px;min-height:30px;font-size:16px;}
+    input[type=text],input[type=number],input[type=date],select,textarea{min-height:40px;}
+    .radio-group input, .cols-panel input[type=checkbox]{width:20px;height:20px;}
+  }
+
+  @media print{
+    @page{ margin: 12mm; }
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+    .tabs, .btn-row, .row-actions, .table-toolbar, .col-clear-btn, .btn,
+    .masthead, footer, .cols-panel, .progress-strip{display:none !important;}
+    .print-header{
+      display:block !important;
+      background:linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%) !important;
+      color:#fff !important;border:none !important;border-bottom:3px solid var(--teal) !important;
+      border-radius:4px 4px 0 0;
+      padding:14px 18px !important;margin-bottom:14px !important;
+    }
+    .notes-callout{border:1.5px solid var(--warn) !important;}
+    .panel{
+      border:1.5px solid var(--ink-soft) !important;box-shadow:none;
+      padding:14px 16px 16px;border-radius:4px;margin-bottom:14px;
+    }
+    .decision-panel{break-inside:avoid;page-break-inside:avoid;}
+    .panel h2{
+      margin:-14px -16px 12px;padding:6px 16px;
+      background:#EDEDEA !important;border-radius:2px 2px 0 0;
+      border-bottom:1.5px solid var(--ink-soft);color:var(--ink) !important;
+    }
+    .panel h2 .badge{background:var(--navy) !important;}
+    .panel h2 .badge-gold{background:var(--warn) !important;}
+    .field-grid > div{border:1px solid var(--line-strong);border-radius:3px;padding:5px 8px;}
+    .tolerance-note{border:1px solid var(--line-strong) !important;}
+    .anomaly-info{border:1px solid var(--line-strong) !important;}
+    table{break-inside:auto;border:1.5px solid var(--ink-soft);margin:0 0 10px;width:100%;}
+    tr{break-inside:avoid;page-break-inside:avoid;}
+    thead th, tbody td{border:1px solid var(--line-strong) !important;}
+    body{background:#fff;font-size:11px;}
+    /* Les champs de saisie eux-mêmes ne s'impriment jamais : remplacés par du texte
+       simple (voir preparePrintText / restorePrintText) qui prend sa largeur naturelle
+       et ne se fait jamais tronquer par une colonne étroite. */
+    input, select, textarea{display:none !important;}
+    .print-static-value{
+      display:inline-block !important;font-family:var(--mono);font-size:10.5px;font-weight:600;
+      color:var(--ink);white-space:nowrap;padding:1px 2px;
+    }
+    .print-static-value.oob{color:var(--bad) !important;font-weight:800;text-decoration:underline;}
+    .print-static-value.empty{color:#aaa;font-weight:400;}
+    td .print-static-value{font-family:var(--mono);}
+    td.label-cell .print-static-value, .field-grid .print-static-value{font-family:var(--sans);}
+    .pill-toggle{border:none !important;background:none !important;}
+    .pill-opt{display:none !important;}
+    .pill-opt.active{
+      display:inline-block !important;border:none !important;padding:0 !important;
+      background:none !important;font-size:11px !important;font-weight:800 !important;
+    }
+    .pill-opt.active.pill-c{color:var(--ok) !important;}
+    .pill-opt.active.pill-nc{color:var(--bad) !important;}
+    .decision-hint, .sig-hint, .btn-sig-clear, .print-decision{display:none !important;}
+    .dec-row{display:grid !important;grid-template-columns:1fr 1fr !important;gap:10px;}
+    .dec-opt{padding:9px !important;font-size:11px !important;border:1.5px solid var(--line-strong) !important;background:#fff !important;color:var(--ink-soft) !important;}
+    .dec-opt.conf.active{background:var(--teal-bg) !important;border-color:var(--teal) !important;color:#1B9E8E !important;}
+    .dec-opt.nc.active{background:var(--bad-bg) !important;border-color:var(--bad) !important;color:var(--bad) !important;}
+    .dec-opt.active .dec-ico{background:currentColor;}
+    .dec-opt.active .dec-ico{color:#fff;-webkit-text-fill-color:#fff;}
+    .dec-opt.conf.active .dec-ico{background:var(--teal);border-color:var(--teal);}
+    .dec-opt.nc.active .dec-ico{background:var(--bad);border-color:var(--bad);}
+    .sig-grid{display:grid !important;grid-template-columns:1fr 1fr !important;gap:10px;}
+    .sig-box{border:1px solid var(--ink-soft) !important;background:#fff !important;break-inside:avoid;}
+    .sig-head{background:#EDEDEA !important;}
+    .sig-body{padding:8px 10px !important;gap:6px !important;}
+    .sig-row{display:grid !important;grid-template-columns:2fr 1fr 1.2fr !important;gap:8px;}
+    .sig-wrap{border:1px solid var(--ink-soft) !important;background:#fff !important;border-radius:3px;}
+    canvas.sig-canvas{height:56px !important;}
+    .sig-panel{break-inside:avoid;page-break-inside:avoid;}
+    .pill-toggle:not(:has(.pill-opt.active))::after{content:"—";color:#aaa;font-size:11px;}
+    .print-footer{
+      display:flex !important;justify-content:space-between;align-items:center;
+      margin-top:10px;padding-top:6px;border-top:1px solid var(--line-strong);
+      font-size:9px;color:var(--ink-soft);font-family:var(--mono);letter-spacing:0.4px;
+    }
+    @media (orientation: portrait){
+      table{font-size:9.5px;}
+      thead th{font-size:9px;padding:5px 4px;}
+      .print-static-value{font-size:9.5px;}
+      tbody td{padding:2px 3px;}
+    }
+    .print-static-block{
+      display:block !important;white-space:pre-wrap;font-family:var(--sans);
+      font-size:10.5px;color:var(--ink);padding:2px 0;
+    }
+    thead th{position:static;background:#eee !important;color:var(--ink) !important;}
+    .tot-cell{background:transparent !important;color:var(--ink) !important;}
+    th[data-colkey="epTotal"]{background:#eee !important;color:var(--ink) !important;}
+  }
+  .print-header{display:none;}
+  .print-static-value, .print-static-block, .print-decision, .print-footer{display:none;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="masthead">
+    <div class="masthead-title">
+      <div class="masthead-logo" aria-hidden="true">
+        <svg viewBox="0 0 26 26" fill="none" stroke="#2BBFAA" stroke-width="2.2" stroke-linecap="round">
+          <path d="M5 20 L21 4"/><path d="M5 12 L13 4"/><path d="M13 22 L21 14"/>
+          <path d="M8 16 L11 19"/><path d="M12 12 L15 15"/><path d="M16 8 L19 11"/>
+        </svg>
+      </div>
+      <div>
+        <div class="masthead-eyebrow">FC · RATP · MOE Voie · Contrôle qualité</div>
+        <h1>Fiches de contrôle qualité</h1>
+        <div class="sub">Saisie terrain · surlignage des tolérances · export &amp; impression</div>
+      </div>
+    </div>
+    <div class="masthead-right">
+      <div class="masthead-docid" id="mastheadDocId" title="Identifiant unique de la fiche active"></div>
+      <div class="sub" id="clock" style="font-style:normal;"></div>
+      <button id="saveSessionBtn" class="btn" style="font-size:11.5px;padding:7px 12px;" title="Sauvegarder toutes les fiches en cours dans un fichier">💾 Sauvegarder</button>
+      <button id="loadSessionBtn" class="btn" style="font-size:11.5px;padding:7px 12px;" title="Reprendre une session sauvegardée">📂 Charger</button>
+      <input type="file" id="loadSessionInput" accept="application/json" hidden>
+      <button id="settingsBtn" class="gear-btn" title="Paramètres du marché" aria-label="Paramètres du marché">⚙</button>
+    </div>
+  </div>
+
+  <div id="progress-host"></div>
+  <div class="tabs" id="tabs"></div>
+  <div id="tab-content"></div>
+
+  <footer>Les données restent dans le navigateur, rien n'est envoyé à un serveur. Pensez à « Sauvegarder » régulièrement sur tablette de chantier (batterie, réseau, fermeture accidentelle) : ça enregistre les 3 fiches dans un fichier que vous pourrez recharger plus tard.</footer>
+</div>
+
+<div id="settingsOverlay" class="modal-overlay" hidden>
+  <div class="modal-panel">
+    <h2>Paramètres du marché</h2>
+    <p class="modal-note">Tolérances applicables à toutes les fiches de ce marché. À régler une seule fois — les personnes qui remplissent les fiches sur le terrain n'ont rien à toucher ici.</p>
+    <div class="field-grid">
+      <div><label>Sous-couche — épaisseur min (mm)</label><input id="cfgScMin" type="number"></div>
+      <div><label>Sous-couche — épaisseur max (mm)</label><input id="cfgScMax" type="number"></div>
+      <div><label>Pilotis — espacement ± (mm)</label><input id="cfgPiloSpacing" type="number"></div>
+      <div><label>Pilotis — équerrage ± (mm)</label><input id="cfgPiloEq" type="number"></div>
+    </div>
+    <div class="btn-row" style="margin-top:18px;">
+      <button id="settingsSave" class="btn btn-primary">Enregistrer</button>
+      <button id="settingsClose" class="btn">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- Utilities ---------- */
+function num(v){ const n = parseFloat(v); return isNaN(n) ? null : n; }
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function el(tag, attrs={}, children=[]){
+  const e = document.createElement(tag);
+  for(const k in attrs){
+    if(k==='class') e.className = attrs[k];
+    else if(k==='html') e.innerHTML = attrs[k];
+    else e.setAttribute(k, attrs[k]);
+  }
+  children.forEach(c => e.appendChild(c));
+  return e;
+}
+function pill(status, textMap={c:'C', nc:'NC', pending:'—'}){
+  const map = {c:['status-c',textMap.c], nc:['status-nc',textMap.nc], pending:['status-pending',textMap.pending]};
+  const [cls,txt] = map[status];
+  return el('span',{class:'status-pill '+cls, html:txt});
+}
+function notesCallout(items){
+  const box = el('div',{class:'notes-callout'});
+  box.appendChild(el('div',{class:'icon', html:'!'}));
+  const list = el('div',{});
+  list.innerHTML = items.map((t,i)=>`<div${i>0?' style="margin-top:3px;"':''}>(${i+1}) ${t}</div>`).join('');
+  box.appendChild(list);
+  return box;
+}
+function pillToggle(options, currentValue, onChange){
+  const wrap = el('div',{class:'pill-toggle'});
+  options.forEach(opt=>{
+    let cls = 'pill-opt';
+    if(opt===currentValue) cls += opt==='C' ? ' active pill-c' : opt==='NC' ? ' active pill-nc' : ' active';
+    const btn = el('button',{type:'button', class:cls, html:opt});
+    btn.addEventListener('click', ()=>onChange(currentValue===opt ? '' : opt));
+    wrap.appendChild(btn);
+  });
+  return wrap;
+}
+function buildHeaderCell(key, labelHtml, onClear){
+  const th = el('th',{'data-colkey':key});
+  th.innerHTML = labelHtml;
+  if(onClear){
+    const btn = el('button',{class:'col-clear-btn', type:'button', title:'Effacer cette colonne (toutes les lignes)', html:'✕'});
+    btn.addEventListener('click', onClear);
+    th.appendChild(btn);
+  }
+  return th;
+}
+function downloadCSV(filename, rows){
+  const csv = rows.map(r => r.map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(';')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+}
+
+/* ---------- Collage multi-cellules depuis Excel, avec aperçu et exclusion de colonnes ---------- */
+let pendingPaste = null; // {rowIndex, colIndex, cells, cols, rowsArr, newRowFn, rerender, include:[bool]}
+
+function handleTablePaste(e, rowsArr, cols, newRowFn, rowIndex, colIndex, rerender){
+  const text = (e.clipboardData || window.clipboardData).getData('text');
+  if(!text || (!text.includes('\t') && !text.includes('\n'))) return; // valeur simple : collage natif normal
+  e.preventDefault();
+  const lines = text.replace(/\r/g,'').split('\n').filter((l,i,arr)=> !(i===arr.length-1 && l===''));
+  const cells = lines.map(line=>line.split('\t').map(v=>v.trim()));
+  const nCols = Math.max(...cells.map(r=>r.length));
+  // Une colonne vide sur TOUTES les lignes collées est presque toujours une colonne masquée/espaceur
+  // dans le classeur Excel source (sélection contiguë qui l'a incluse par erreur) : exclue par défaut,
+  // mais modifiable avant de valider.
+  const include = Array.from({length:nCols}, (_,ci)=> !cells.every(row => (row[ci] ?? '')===''));
+  pendingPaste = {rowIndex, colIndex, cells, cols, rowsArr, newRowFn, rerender, include};
+  openPastePreview();
+}
+
+function pasteColumnMapping(){
+  const {colIndex, cols, include} = pendingPaste;
+  let seq = 0;
+  return include.map(inc=>{
+    if(!inc) return null;
+    const col = cols[colIndex+seq];
+    seq++;
+    return col;
+  });
+}
+
+function openPastePreview(){
+  closePastePreview();
+  const {cells, include} = pendingPaste;
+  const nCols = include.length;
+  const mapping = pasteColumnMapping();
+  const anyExcluded = include.some(v=>!v);
+  const overlay = el('div',{id:'pastePreviewOverlay', class:'modal-overlay'});
+  const panel = el('div',{class:'modal-panel', style:'max-width:720px;'});
+  panel.appendChild(el('h2',{html:'Aperçu du collage'}));
+  panel.appendChild(el('p',{class:'modal-note',
+    html:`${cells.length} ligne(s) × ${nCols} colonne(s) détectée(s).`
+      + (anyExcluded ? ' Une colonne vide sur toutes les lignes a été détectée et exclue par défaut (probablement une colonne masquée dans Excel) — décochez « Inclure » pour l\'ajouter, ou cochez-la si elle est légitime.' : '')
+      + ' Vérifiez que chaque colonne tombe sur le bon champ avant de valider.'}));
+
+  const previewWrap = el('div',{style:'overflow-x:auto;'});
+  const table = el('table');
+  const thead = el('thead');
+  const trCheck = el('tr');
+  const trLabel = el('tr');
+  for(let ci=0; ci<nCols; ci++){
+    const thCheck = el('th',{style:'text-align:center;font-weight:400;'});
+    const cb = el('input',{type:'checkbox'});
+    cb.checked = include[ci];
+    cb.style.width='auto';
+    cb.addEventListener('change', ()=>{ pendingPaste.include[ci] = cb.checked; openPastePreview(); });
+    thCheck.appendChild(cb);
+    thCheck.appendChild(document.createTextNode(' Inclure'));
+    trCheck.appendChild(thCheck);
+    const targetCol = mapping[ci];
+    trLabel.appendChild(el('th',{html: targetCol ? targetCol[1] : '<span style="color:var(--ink-soft)">— ignorée —</span>'}));
+  }
+  thead.appendChild(trCheck); thead.appendChild(trLabel);
+  table.appendChild(thead);
+  const tbody = el('tbody');
+  cells.slice(0,5).forEach(row=>{
+    const tr = el('tr');
+    for(let ci=0; ci<nCols; ci++){
+      const v = row[ci] ?? '';
+      const td = el('td',{html: v==='' ? '<span style="color:var(--ink-soft)">(vide)</span>' : v});
+      if(!include[ci]) td.style.opacity='0.4';
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  previewWrap.appendChild(table);
+  if(cells.length>5) previewWrap.appendChild(el('div',{style:'font-size:11px;color:var(--ink-soft);margin-top:6px;', html:`… et ${cells.length-5} ligne(s) de plus`}));
+  panel.appendChild(previewWrap);
+
+  const actionRow = el('div',{class:'btn-row', style:'margin-top:16px;'});
+  const confirmBtn = el('button',{class:'btn btn-primary', html:'Coller'});
+  confirmBtn.addEventListener('click', commitPendingPaste);
+  const cancelBtn = el('button',{class:'btn', html:'Annuler'});
+  cancelBtn.addEventListener('click', closePastePreview);
+  actionRow.appendChild(confirmBtn); actionRow.appendChild(cancelBtn);
+  panel.appendChild(actionRow);
+
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+}
+function closePastePreview(){
+  const overlay = document.getElementById('pastePreviewOverlay');
+  if(overlay) overlay.remove();
+}
+function commitPendingPaste(){
+  const {rowIndex, cells, rowsArr, newRowFn, rerender} = pendingPaste;
+  const mapping = pasteColumnMapping();
+  cells.forEach((rowVals, li)=>{
+    let targetRow = rowsArr[rowIndex+li];
+    if(!targetRow){ targetRow = newRowFn(); rowsArr.push(targetRow); }
+    rowVals.forEach((val, ci)=>{
+      const col = mapping[ci];
+      if(col) targetRow[col[0]] = val;
+    });
+  });
+  pendingPaste = null;
+  closePastePreview();
+  rerender();
+}
+
+/* ---------- Grille façon Excel : sélection de cellules, copier interne, navigation flèches ---------- */
+/* Pointer Events unifie souris, doigt et stylet — indispensable pour l'usage tablette sur chantier. */
+const gridSelection = {tabKey:null, active:false, r1:0,r2:0,c1:0,c2:0, anchor:null};
+let isSelecting = false;
+let activePointerId = null;
+
+function paintSelection(){
+  document.querySelectorAll('#tab-content input[data-row]').forEach(elm=>{
+    const r = +elm.dataset.row, c = +elm.dataset.col;
+    const inRange = gridSelection.active && elm.dataset.tab===gridSelection.tabKey &&
+      r>=gridSelection.r1 && r<=gridSelection.r2 && c>=gridSelection.c1 && c<=gridSelection.c2;
+    elm.classList.toggle('cell-selected', inRange);
+  });
+}
+function copyToClipboard(text){
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }catch(err){ /* copie silencieusement ignorée si non supportée */ }
+}
+function copySelection(){
+  if(!gridSelection.active) return;
+  const {tabKey, r1, r2, c1, c2} = gridSelection;
+  const rowsArr = tabKey==='sc' ? stateSC.rows : statePilo.rows;
+  const cols = tabKey==='sc' ? scCols : piloCols;
+  const lines = [];
+  for(let ri=r1; ri<=r2; ri++){
+    const row = rowsArr[ri];
+    const vals = [];
+    for(let ci=c1; ci<=c2; ci++) vals.push(row ? (row[cols[ci][0]] ?? '') : '');
+    lines.push(vals.join('\t'));
+  }
+  copyToClipboard(lines.join('\n'));
+}
+document.addEventListener('keydown', e=>{
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='c' && gridSelection.active){
+    const active = document.activeElement;
+    if(active && active.tagName==='INPUT' && active.dataset.row!==undefined) copySelection();
+  }
+});
+/* Suivi du glisser en cours, que ce soit à la souris, au doigt ou au stylet */
+document.addEventListener('pointermove', e=>{
+  if(!isSelecting || e.pointerId!==activePointerId || !document.elementFromPoint) return;
+  const target = document.elementFromPoint(e.clientX, e.clientY);
+  const cellInput = target && target.closest ? target.closest('input[data-row]') : null;
+  if(!cellInput || cellInput.dataset.tab!==gridSelection.tabKey) return;
+  const r = +cellInput.dataset.row, c = +cellInput.dataset.col;
+  gridSelection.r1 = Math.min(gridSelection.anchor.r, r);
+  gridSelection.r2 = Math.max(gridSelection.anchor.r, r);
+  gridSelection.c1 = Math.min(gridSelection.anchor.c, c);
+  gridSelection.c2 = Math.max(gridSelection.anchor.c, c);
+  paintSelection();
+});
+document.addEventListener('pointerup', ()=>{ isSelecting=false; activePointerId=null; });
+document.addEventListener('pointercancel', ()=>{ isSelecting=false; activePointerId=null; });
+
+/* Attache sélection (souris/tactile), navigation (flèches/Entrée) et collage sur une cellule de tableau */
+function wireCell(inp, tabKey, rowIdx, colIdx){
+  inp.dataset.row = rowIdx;
+  inp.dataset.col = colIdx;
+  inp.dataset.tab = tabKey;
+  inp.addEventListener('pointerdown', e=>{
+    isSelecting = true;
+    activePointerId = e.pointerId;
+    gridSelection.tabKey = tabKey; gridSelection.anchor = {r:rowIdx,c:colIdx};
+    gridSelection.r1=gridSelection.r2=rowIdx; gridSelection.c1=gridSelection.c2=colIdx;
+    gridSelection.active = true;
+    paintSelection();
+  });
+  inp.addEventListener('focus', ()=>{
+    if(isSelecting) return;
+    gridSelection.tabKey = tabKey; gridSelection.anchor = {r:rowIdx,c:colIdx};
+    gridSelection.r1=gridSelection.r2=rowIdx; gridSelection.c1=gridSelection.c2=colIdx;
+    gridSelection.active = true;
+    paintSelection();
+  });
+  inp.addEventListener('keydown', e=>{
+    if(!['ArrowUp','ArrowDown','Enter'].includes(e.key)) return;
+    e.preventDefault();
+    const nr = (e.key==='ArrowUp') ? rowIdx-1 : rowIdx+1;
+    const target = document.querySelector(`#tab-content input[data-tab="${tabKey}"][data-row="${nr}"][data-col="${colIdx}"]`);
+    if(target){ target.focus(); target.select && target.select(); }
+  });
+}
+
+document.getElementById('clock').textContent = new Date().toLocaleDateString('fr-FR', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+
+/* ---------- Signature pad ---------- */
+function attachSignaturePad(canvas, opts={}){
+  const ctx = canvas.getContext('2d');
+  let dataUrl = opts.initial || '';
+  function paintFromDataUrl(){
+    if(!dataUrl) return;
+    const img = new Image();
+    img.onload = ()=>{ ctx.drawImage(img, 0, 0, canvas.clientWidth, canvas.clientHeight); };
+    img.src = dataUrl;
+  }
+  function resize(){
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = Math.max(1, canvas.clientWidth * ratio);
+    canvas.height = Math.max(1, canvas.clientHeight * ratio);
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.strokeStyle = '#0D1B3E'; ctx.lineWidth = 1.8; ctx.lineCap='round'; ctx.lineJoin='round';
+    paintFromDataUrl();
+  }
+  resize();
+  if(window.ResizeObserver){
+    new ResizeObserver(()=>resize()).observe(canvas);
+  } else {
+    window.addEventListener('resize', resize);
+  }
+  let drawing=false, last=null;
+  function pos(e){
+    const r = canvas.getBoundingClientRect();
+    return {x:e.clientX-r.left, y:e.clientY-r.top};
+  }
+  function commit(){
+    try{ dataUrl = canvas.toDataURL('image/png'); }catch(err){}
+    if(opts.onChange) opts.onChange(dataUrl);
+  }
+  canvas.addEventListener('pointerdown', e=>{
+    drawing=true; last=pos(e);
+    canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  canvas.addEventListener('pointermove', e=>{
+    if(!drawing) return;
+    const p = pos(e);
+    ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke();
+    last = p; e.preventDefault();
+  });
+  const stop = ()=>{ if(!drawing) return; drawing=false; commit(); };
+  canvas.addEventListener('pointerup', stop);
+  canvas.addEventListener('pointercancel', stop);
+  canvas.addEventListener('pointerleave', stop);
+  return {
+    clear(){
+      ctx.save(); ctx.setTransform(1,0,0,1,0,0);
+      ctx.clearRect(0,0,canvas.width,canvas.height); ctx.restore();
+      dataUrl=''; if(opts.onChange) opts.onChange('');
+    },
+    isEmpty(){ return !dataUrl; },
+    toDataURL(){ return dataUrl; }
+  };
+}
+
+/* ==========================================================
+   FICHE 1 — MAD-ADV (checklist)
+   ========================================================== */
+const madAdvItems = [
+  {key:'cotesADV', label:"Cotes ADV", note:"→ cf fiche de réception ADV", type:'CNC'},
+  {key:'receptionTopo', label:"Réception topo des points caractéristiques", note:"", type:'CNC'},
+  {key:'isolementJI', label:"Isolement des JI", note:"→ cf fiche du Titulaire", type:'CNC'},
+  {key:'connexions', label:"Connexions", note:"→ cf plan des connexions électrique RATP", type:'CNC'},
+  {key:'coussinets', label:"Coussinets graissés", note:"", type:'CNC'},
+  {key:'aiguillePlaquee', label:"Aiguille plaquée sur les coussinets", note:"", type:'CNC'},
+  {key:'effacement', label:"Effacement de l'aiguille contre la contre-aiguille", note:"", type:'CNC'},
+  {key:'croisement', label:"Position du croisement bon", note:"", type:'CNC'},
+  {key:'condamnation', label:"Condamnation des itinéraires en voie directe", note:"", type:'CNC'},
+  {key:'moteur', label:"Moteur / Manœuvre installée", note:"", type:'OUINON'},
+];
+const stateMad = {
+  header:{chantier:'',date:'',typePose:'',voie:'',advNum:'',typeAppareil:'',plancher:'',pose:'',planRef:''},
+  items:{}, refFournisseur:'', etatGeneral:'', observations:''
+};
+madAdvItems.forEach(i => stateMad.items[i.key] = '');
+
+function computeMadAnomalies(){
+  return madAdvItems.filter(i=>i.type==='CNC' && stateMad.items[i.key]==='NC').length;
+}
+
+function docIdForRef(ref){
+  const key = Object.keys(DOC_REFS).find(k=>DOC_REFS[k]===ref) || activeTab;
+  return docId(key);
+}
+const FIELD_PH = {"chantier": "Ex. : Val-de-Fontenay", "typePose": "Ex. : pose sur ballast", "voie": "Ex. : V1", "advNum": "Ex. : ADV 14", "typeAppareil": "Ex. : TJD 0,11", "planRef": "Ex. : PL-1234 ind. B", "projet": "Ex. : AMT HALL B", "appareils": "Ex. : —", "heure": "Ex. : 10:30", "pkDebut": "Ex. : 283.298", "pkFin": "Ex. : 234.100", "zone": "Ex. : Zone B3"};
+function printHeader(title, ref){
+  const today = new Date().toLocaleDateString('fr-FR');
+  return el('div',{class:'print-header', html:`
+    <div style="font-size:10px;letter-spacing:1.1px;text-transform:uppercase;color:#8FE0D3;margin-bottom:5px;font-weight:700;">${ref} — RATP · MOE VOIE · CONTRÔLE QUALITÉ · ${today}</div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;">
+    <div><strong style="font-size:16px;color:#fff;">FICHE DE CONTRÔLE QUALITÉ</strong><div style="font-size:12px;color:#C9D6EC;margin-top:3px;">${title}</div></div>
+    <div style="font-size:11px;color:#C9D6EC;font-family:var(--mono);letter-spacing:0.5px;">${docIdForRef(ref)}</div>
+  </div>`});
+}
+function mountProgress(strip){
+  const host = document.getElementById('progress-host');
+  if(!host) return;
+  host.innerHTML=''; host.appendChild(strip);
+}
+function progressStrip(filled, total, id){
+  const pct = total ? Math.round((filled/total)*100) : 100;
+  const strip = el('div',{class:'progress-strip'+(pct>=100?' complete':''), id});
+  const row = el('div',{class:'progress-row'});
+  const label = document.createElement('span'); label.className='progress-label'; label.textContent = `${filled}/${total} champs requis`;
+  const pctEl = document.createElement('span'); pctEl.className='progress-pct'; pctEl.textContent = pct+'%';
+  row.appendChild(label); row.appendChild(pctEl);
+  strip.appendChild(row);
+  const track = el('div',{class:'progress-track'});
+  track.appendChild(el('div',{class:'progress-fill', style:`width:${pct}%;`}));
+  strip.appendChild(track);
+  return strip;
+}
+function refreshProgressStrip(id, filled, total){
+  const strip = document.getElementById(id);
+  if(!strip) return;
+  const pct = total ? Math.round((filled/total)*100) : 100;
+  strip.classList.toggle('complete', pct>=100);
+  strip.querySelector('.progress-label').textContent = `${filled}/${total} champs requis`;
+  strip.querySelector('.progress-pct').textContent = pct+'%';
+  strip.querySelector('.progress-fill').style.width = pct+'%';
+}
+
+function renderMad(container){
+  container.innerHTML='';
+  container.appendChild(printHeader("Mise à disposition d'ADV", 'FC-MAD-ADV'));
+  const madRequired = ['voie','advNum','date'];
+  mountProgress(progressStrip(madRequired.filter(k=>stateMad.header[k]).length, madRequired.length, 'mad-progress'));
+  const p1 = el('div',{class:'panel'});
+  p1.appendChild(el('h2',{html:"Identification"}));
+  const grid = el('div',{class:'field-grid'});
+  const fields = [
+    ['chantier','Chantier'],['date','Date','date'],['typePose','Type de pose'],
+    ['voie','Voie n°'],['advNum','ADV n°'],['typeAppareil','Type d\'appareil'],
+    ['planRef','Référence plan de pose (+ indice)']
+  ];
+  fields.forEach(([k,label,type='text'])=>{
+    const wrap = el('div');
+    const isReq = ['voie','advNum','date'].includes(k);
+    wrap.appendChild(el('label',{html: label + (isReq ? ' <span class="req-mark">*</span>' : '')}));
+    const inp = el('input',{type, value: stateMad.header[k], placeholder: (FIELD_PH[k]||'')});
+    inp.addEventListener('input', e=>{
+      stateMad.header[k]=e.target.value;
+      const req=['voie','advNum','date'];
+      refreshProgressStrip('mad-progress', req.filter(rk=>stateMad.header[rk]).length, req.length);
+    });
+    wrap.appendChild(inp);
+    grid.appendChild(wrap);
+  });
+  ['plancher','pose'].forEach(k=>{
+    const opts = k==='plancher' ? ['bois','composite','béton'] : ['béton','ballast'];
+    const wrap = el('div');
+    wrap.appendChild(el('label',{html: k==='plancher' ? 'Plancher' : 'Pose'}));
+    wrap.appendChild(pillToggle(opts, stateMad.header[k], val=>{ stateMad.header[k]=val; renderMad(container); }));
+    grid.appendChild(wrap);
+  });
+  p1.appendChild(grid);
+  container.appendChild(p1);
+
+  const p2 = el('div',{class:'panel'});
+  p2.appendChild(el('h2',{html:'<span class="badge badge-gold">A</span>Points de contrôle'}));
+  p2.appendChild(notesCallout([
+    "Les points de contrôle renvoient à des fiches annexes (réception ADV, fiche du Titulaire, plan des connexions RATP) — s'y référer avant de statuer.",
+    "Le champ « Moteur / Manœuvre installée » est informatif (OUI/NON) et n'entre pas dans le calcul de la décision globale."
+  ]));
+  const table = el('table');
+  table.appendChild(el('thead',{html:'<tr><th style="width:45%">Point de contrôle</th><th>Référence</th><th style="width:160px">Résultat</th></tr>'}));
+  const tbody = el('tbody');
+  madAdvItems.forEach(item=>{
+    const tr = el('tr');
+    tr.appendChild(el('td',{html:item.label}));
+    tr.appendChild(el('td',{html:`<span style="color:var(--ink-soft)">${item.note}</span>`}));
+    const tdSel = el('td');
+    const opts = item.type==='CNC' ? ['C','NC'] : ['OUI','NON'];
+    tdSel.appendChild(pillToggle(opts, stateMad.items[item.key], val=>{ stateMad.items[item.key]=val; renderMad(container); }));
+    tr.appendChild(tdSel);
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  p2.appendChild(table);
+
+  const grid2 = el('div',{class:'field-grid', html:''});
+  const wrap1 = el('div');
+  wrap1.appendChild(el('label',{html:'Référence fiche de contrôle fournisseur (moteur)'}));
+  const inp1 = el('input',{type:'text', value:stateMad.refFournisseur});
+  inp1.addEventListener('input', e=>stateMad.refFournisseur=e.target.value);
+  wrap1.appendChild(inp1);
+  grid2.appendChild(wrap1);
+  p2.appendChild(el('div',{style:'height:12px'}));
+  p2.appendChild(grid2);
+
+  const wrapEtat = el('div',{style:'margin-top:12px'});
+  wrapEtat.appendChild(el('label',{html:"État général de l'appareil (plancher, profilés, propreté)"}));
+  const ta = el('textarea');
+  ta.value = stateMad.etatGeneral;
+  ta.addEventListener('input', e=>stateMad.etatGeneral=e.target.value);
+  wrapEtat.appendChild(ta);
+  p2.appendChild(wrapEtat);
+
+  container.appendChild(p2);
+  container.appendChild(decisionAndSignature('mad', computeMadAnomalies(), exportMad));
+}
+
+function exportMad(){
+  const rows = [['Champ','Valeur']];
+  Object.entries(stateMad.header).forEach(([k,v])=>rows.push([k,v]));
+  madAdvItems.forEach(i=>rows.push([i.label, stateMad.items[i.key]]));
+  rows.push(['Réf. fiche fournisseur', stateMad.refFournisseur]);
+  rows.push(['État général', stateMad.etatGeneral]);
+  rows.push(['Observations', stateMad.observations]);
+  rows.push(['Décision (signataire)', decisionLabel('mad')]);
+  rows.push(...signerRows('mad'));
+  downloadCSV('FC-MAD-ADV.csv', rows);
+}
+
+/* ==========================================================
+   FICHE 2 — SOUS-COUCHE (mise en œuvre)
+   ========================================================== */
+const stateSC = {
+  header:{projet:'',voie:'',appareils:'',date:'',heure:'',pkDebut:'',pkFin:''},
+  tolMin:100, tolMax:150,
+  observations:'',
+  rows:[]
+};
+function newSCRow(){ return {id:uid(), repere:'', pk:'', nr:'', niveauAvant:'', epSC1:'', niveauSC1:'', epSC2:'', niveauSC2:'', niveauFF:'', compactage:''}; }
+stateSC.rows.push(newSCRow());
+
+/* Ép. ballast totale = Niveau SCB avant relevage − Niveau fond de fouille.
+   Vérifié sur FC-SOUS-COUCHE (B1,B2,B3).xlsx : ex. D20=-433, J20=-626 → 193 = K20.
+   Ce n'est PAS la somme des deux passes (Ép. SC n°1 + n°2) : sur la même ligne,
+   150+150=300 ≠ 193. C'est une valeur d'information, pas soumise à la tolérance ci-dessous. */
+function scEpTotal(r){
+  const avant = num(r.niveauAvant), ff = num(r.niveauFF);
+  if(avant===null || ff===null) return null;
+  return avant - ff;
+}
+/* La tolérance 10-15 cm (F11 sur la fiche source) porte sur CHAQUE passe
+   individuelle (Ép. SC n°1 et Ép. SC n°2), pas sur le total ballast. */
+function scLayerStatus(v){
+  const n = num(v);
+  if(n===null) return null; // non renseigné
+  return n >= stateSC.tolMin && n <= stateSC.tolMax;
+}
+function countAnomaliesSC(){
+  return stateSC.rows.filter(r => scLayerStatus(r.epSC1)===false || scLayerStatus(r.epSC2)===false).length;
+}
+
+const scCols = [
+  ['repere','Repère','text'],['pk','PK','number'],['nr','NR','number'],
+  ['niveauAvant','Niveau SCB avant relevage','number'],
+  ['epSC1','Ép. SC n°1','number'],['niveauSC1','Niveau SC n°1','number'],
+  ['epSC2','Ép. SC n°2','number'],['niveauSC2','Niveau SC n°2','number'],
+  ['niveauFF','Niveau fond de fouille','number'],
+];
+const colVisibility = {
+  sc: Object.fromEntries(scCols.map(c=>[c[0],true]).concat([['epTotal',true],['compactage',true]])),
+};
+
+function renderSC(container){
+  container.innerHTML='';
+  container.appendChild(printHeader('Contrôle de mise en œuvre de sous-couche de ballast', 'FC-BALL'));
+  const scRequired = ['voie','pkDebut','pkFin','date'];
+  mountProgress(progressStrip(scRequired.filter(k=>stateSC.header[k]).length, scRequired.length, 'sc-progress'));
+  const p1 = el('div',{class:'panel'});
+  p1.appendChild(el('h2',{html:"Identification"}));
+  const grid = el('div',{class:'field-grid'});
+  [['projet','Projet'],['voie','Voie(s)'],['appareils','Appareil(s)'],['date','Date','date'],['heure','Heure','text'],['pkDebut','du PK'],['pkFin','au PK']]
+    .forEach(([k,label,type='text'])=>{
+      const wrap = el('div');
+      const isReq = ['voie','pkDebut','pkFin','date'].includes(k);
+      wrap.appendChild(el('label',{html: label + (isReq ? ' <span class="req-mark">*</span>' : '')}));
+      const inp = el('input',{type, value: stateSC.header[k], placeholder: (FIELD_PH[k]||'')});
+      inp.addEventListener('input', e=>{
+        stateSC.header[k]=e.target.value;
+        const req=['voie','pkDebut','pkFin','date'];
+        refreshProgressStrip('sc-progress', req.filter(rk=>stateSC.header[rk]).length, req.length);
+      });
+      wrap.appendChild(inp);
+      grid.appendChild(wrap);
+    });
+  p1.appendChild(grid);
+  container.appendChild(p1);
+
+  const p2 = el('div',{class:'panel'});
+  p2.appendChild(el('h2',{html:'<span class="badge badge-gold">A</span>Relevés'}));
+  p2.appendChild(notesCallout([
+    "La tolérance s'applique séparément à chaque passe (Ép. SC n°1 et Ép. SC n°2), jamais à l'épaisseur totale.",
+    "Maillage de relevé : tous les 10 m aux extrémités de largeur et en axe de plateforme."
+  ]));
+  p2.appendChild(el('div',{class:'tolerance-note',
+    html:`<span class="seg">Épaisseur par passe : <strong>${stateSC.tolMin}–${stateSC.tolMax}&nbsp;mm</strong></span>`
+      + `<span class="seg">Maillage : <strong>tous les 10&nbsp;m</strong> aux extrémités et en axe de plateforme</span>`
+      + `<span class="seg">Appliquée séparément à SC n°1 et SC n°2 — hors plage = surligné en rouge</span>`
+      + `<span class="seg">Ép. ballast totale = information (Niveau avant − fond de fouille), sans tolérance propre</span>`}));
+
+  const toolbar = el('div',{class:'table-toolbar'});
+  toolbar.appendChild(el('span',{style:'font-size:11.5px;color:var(--ink-soft)', html:`${stateSC.rows.length} ligne(s) — astuce : sélectionnez un bloc de cellules dans Excel, collez-le (Ctrl+V) dans une cellule du tableau ci-dessous`}));
+  const addBtn = el('button',{class:'btn', html:'+ Ajouter une ligne'});
+  addBtn.addEventListener('click', ()=>{ stateSC.rows.push(newSCRow()); renderSC(container); });
+  toolbar.appendChild(addBtn);
+  p2.appendChild(toolbar);
+
+  const table = el('table');
+  const thead = el('thead');
+  const trh = el('tr');
+  scCols.forEach(([k,label])=>{
+    trh.appendChild(buildHeaderCell(k, label, ()=>{
+      if(confirm(`Effacer toutes les valeurs de la colonne « ${label} » sur les ${stateSC.rows.length} ligne(s) ?`)){
+        stateSC.rows.forEach(r=>r[k]='');
+        renderSC(container);
+      }
+    }));
+  });
+  trh.appendChild(buildHeaderCell('epTotal', 'Ép. ballast totale (mm)<br><span style="font-weight:400;font-size:10px">Niveau avant − fond de fouille</span>', null));
+  trh.appendChild(buildHeaderCell('compactage', 'Compactage', ()=>{
+    if(confirm(`Effacer toutes les valeurs de Compactage sur les ${stateSC.rows.length} ligne(s) ?`)){
+      stateSC.rows.forEach(r=>r.compactage='');
+      renderSC(container);
+    }
+  }));
+  trh.appendChild(el('th',{class:'row-actions'}));
+  thead.appendChild(trh);
+  table.appendChild(thead);
+  const tbody = el('tbody');
+  stateSC.rows.forEach((r,rowIdx)=>{
+    const tr = el('tr');
+    scCols.forEach(([k,label,type],colIdx)=>{
+      const td = el('td',{'data-colkey':k});
+      const inp = el('input',{type: type==='number'?'number':'text', value:r[k], step:'any'});
+      inp.dataset.key = k;
+      wireCell(inp, 'sc', rowIdx, colIdx);
+      if((k==='epSC1' || k==='epSC2') && scLayerStatus(r[k])===false) inp.classList.add('input-oob');
+      inp.addEventListener('input', e=>{ r[k]=e.target.value; refreshSCRow(tr,r); });
+      inp.addEventListener('paste', e=>handleTablePaste(
+        e, stateSC.rows, scCols, newSCRow,
+        stateSC.rows.indexOf(r), scCols.findIndex(c=>c[0]===k),
+        ()=>renderSC(container)
+      ));
+      td.appendChild(inp);
+      tr.appendChild(td);
+    });
+    const tdTot = el('td',{class:'tot-cell', 'data-colkey':'epTotal', html: scEpTotal(r)===null?'—':String(scEpTotal(r))});
+    tr.appendChild(tdTot);
+    const tdComp = el('td',{'data-colkey':'compactage'});
+    tdComp.appendChild(pillToggle(['C','NC'], r.compactage, val=>{ r.compactage=val; renderSC(container); }));
+    tr.appendChild(tdComp);
+    const tdAct = el('td',{class:'row-actions'});
+    const dupBtn = el('button',{html:'Dupl.'});
+    dupBtn.addEventListener('click', ()=>{
+      const idx = stateSC.rows.indexOf(r);
+      stateSC.rows.splice(idx+1, 0, {...r, id:uid()});
+      renderSC(container);
+    });
+    tdAct.appendChild(dupBtn);
+    const delBtn = el('button',{class:'btn-delete-circle', title:'Supprimer la ligne', html:'×'});
+    delBtn.addEventListener('click', ()=>{ stateSC.rows = stateSC.rows.filter(x=>x.id!==r.id); renderSC(container); });
+    tdAct.appendChild(delBtn);
+    tr.appendChild(tdAct);
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  p2.appendChild(table);
+  container.appendChild(p2);
+  container.appendChild(decisionAndSignature('sc', countAnomaliesSC(), exportSC));
+}
+
+function refreshSCRow(tr, r){
+  const totCell = tr.querySelector('.tot-cell');
+  totCell.textContent = scEpTotal(r)===null ? '—' : String(scEpTotal(r));
+  ['epSC1','epSC2'].forEach(k=>{
+    const inp = tr.querySelector(`input[data-key="${k}"]`);
+    if(!inp) return;
+    inp.classList.toggle('input-oob', scLayerStatus(r[k])===false);
+  });
+  updateDecisionInfo('sc', countAnomaliesSC());
+}
+
+function exportSC(){
+  const rows = [['Champ','Valeur']];
+  Object.entries(stateSC.header).forEach(([k,v])=>rows.push([k,v]));
+  rows.push([]);
+  rows.push([...scCols.map(c=>c[1]), 'Ép. ballast totale (mm)', 'Compactage']);
+  stateSC.rows.forEach(r=>{
+    rows.push([...scCols.map(c=>r[c[0]]), scEpTotal(r), r.compactage]);
+  });
+  rows.push([]); rows.push(['Observations', stateSC.observations]); rows.push(['Décision (signataire)', decisionLabel('sc')]);
+  rows.push(...signerRows('sc'));
+  downloadCSV('FC-SOUS-COUCHE.csv', rows);
+}
+
+/* ==========================================================
+   FICHE 3 — PILOTIS (position)
+   ========================================================== */
+const statePilo = {
+  header:{chantier:'',voie:'',zone:'',pkDebut:'',pkFin:'',date:''},
+  tolSpacing:30, tolEquerrage:10,
+  observations:'',
+  rows:[]
+};
+function newPiloRow(){ return {id:uid(), travee:'', FG:'', FD:'', coteTheo:'', verticalite:'', noPilotis:'', equerrage:'', observation:''}; }
+statePilo.rows.push(newPiloRow());
+
+function piloFieldStatus(r,key){
+  const fg=num(r.FG), fd=num(r.FD), ct=num(r.coteTheo), eq=num(r.equerrage);
+  if(key==='FG'){ if(fg===null||ct===null) return null; return Math.abs(fg-ct)<=statePilo.tolSpacing; }
+  if(key==='FD'){ if(fd===null||ct===null) return null; return Math.abs(fd-ct)<=statePilo.tolSpacing; }
+  if(key==='equerrage'){ if(eq===null) return null; return Math.abs(eq)<=statePilo.tolEquerrage; }
+  return null;
+}
+function countAnomaliesPilo(){
+  return statePilo.rows.filter(r =>
+    piloFieldStatus(r,'FG')===false || piloFieldStatus(r,'FD')===false || piloFieldStatus(r,'equerrage')===false
+  ).length;
+}
+
+const piloCols = [
+  ['travee','Travée n°','text'],['FG','FG (mm)','number'],['FD','FD (mm)','number'],
+  ['coteTheo','Cote théorique (mm)','number'],['verticalite','Verticalité','text'],
+  ['noPilotis','N° Pilotis','text'],['equerrage','Équerrage (mm)','number'],['observation','Observation','text']
+];
+colVisibility.pilo = Object.fromEntries(piloCols.map(c=>[c[0],true]));
+
+function renderPilo(container){
+  container.innerHTML='';
+  container.appendChild(printHeader('Contrôle de la position des pilotis', 'FC-PILO14'));
+  const piloRequired = ['voie','pkDebut','date'];
+  mountProgress(progressStrip(piloRequired.filter(k=>statePilo.header[k]).length, piloRequired.length, 'pilo-progress'));
+  const p1 = el('div',{class:'panel'});
+  p1.appendChild(el('h2',{html:"Identification"}));
+  const grid = el('div',{class:'field-grid'});
+  [['chantier','Chantier'],['voie','Voie'],['zone','Zone'],['pkDebut','Contrôle du PK'],['pkFin','au PK'],['date','Date','date']]
+    .forEach(([k,label,type='text'])=>{
+      const wrap = el('div');
+      const isReq = ['voie','pkDebut','date'].includes(k);
+      wrap.appendChild(el('label',{html: label + (isReq ? ' <span class="req-mark">*</span>' : '')}));
+      const inp = el('input',{type, value: statePilo.header[k], placeholder: (FIELD_PH[k]||'')});
+      inp.addEventListener('input', e=>{
+        statePilo.header[k]=e.target.value;
+        const req=['voie','pkDebut','date'];
+        refreshProgressStrip('pilo-progress', req.filter(rk=>statePilo.header[rk]).length, req.length);
+      });
+      wrap.appendChild(inp);
+      grid.appendChild(wrap);
+    });
+  p1.appendChild(grid);
+  container.appendChild(p1);
+
+  const p2 = el('div',{class:'panel'});
+  p2.appendChild(el('h2',{html:'<span class="badge badge-gold">A</span>Relevés'}));
+  p2.appendChild(notesCallout([
+    "Faire le relevé conformément aux tolérances de pose pilotis NTC 309.",
+    "Les valeurs hors tolérance sont surlignées automatiquement — la décision finale reste à votre charge."
+  ]));
+  p2.appendChild(el('div',{class:'tolerance-note',
+    html:`<span class="seg">Espacement : <strong>cote théorique ±${statePilo.tolSpacing}&nbsp;mm</strong></span>`
+      + `<span class="seg">Équerrage : <strong>±${statePilo.tolEquerrage}&nbsp;mm</strong></span>`
+      + `<span class="seg">Selon NTC 309</span>`
+      + `<span class="seg">Valeur hors plage = surlignée en rouge</span>`}));
+
+  const toolbar = el('div',{class:'table-toolbar'});
+  toolbar.appendChild(el('span',{style:'font-size:11.5px;color:var(--ink-soft)', html:`${statePilo.rows.length} ligne(s) — astuce : sélectionnez un bloc de cellules dans Excel, collez-le (Ctrl+V) dans une cellule du tableau ci-dessous`}));
+  const addBtn = el('button',{class:'btn', html:'+ Ajouter une ligne'});
+  addBtn.addEventListener('click', ()=>{ statePilo.rows.push(newPiloRow()); renderPilo(container); });
+  toolbar.appendChild(addBtn);
+  p2.appendChild(toolbar);
+
+  const table = el('table');
+  const thead = el('thead');
+  const trh = el('tr');
+  piloCols.forEach(([k,label])=>{
+    trh.appendChild(buildHeaderCell(k, label, ()=>{
+      if(confirm(`Effacer toutes les valeurs de la colonne « ${label} » sur les ${statePilo.rows.length} ligne(s) ?`)){
+        statePilo.rows.forEach(r=>r[k]='');
+        renderPilo(container);
+      }
+    }));
+  });
+  trh.appendChild(el('th',{class:'row-actions'}));
+  thead.appendChild(trh);
+  table.appendChild(thead);
+  const tbody = el('tbody');
+  statePilo.rows.forEach((r,rowIdx)=>{
+    const tr = el('tr');
+    piloCols.forEach(([k,label,type],colIdx)=>{
+      const td = el('td',{'data-colkey':k});
+      const inp = el('input',{type: type==='number'?'number':'text', value:r[k], step:'any'});
+      inp.dataset.key = k;
+      wireCell(inp, 'pilo', rowIdx, colIdx);
+      if(['FG','FD','equerrage'].includes(k) && piloFieldStatus(r,k)===false) inp.classList.add('input-oob');
+      inp.addEventListener('input', e=>{ r[k]=e.target.value; refreshPiloRow(tr,r); });
+      inp.addEventListener('paste', e=>handleTablePaste(
+        e, statePilo.rows, piloCols, newPiloRow,
+        statePilo.rows.indexOf(r), piloCols.findIndex(c=>c[0]===k),
+        ()=>renderPilo(container)
+      ));
+      td.appendChild(inp);
+      tr.appendChild(td);
+    });
+    const tdAct = el('td',{class:'row-actions'});
+    const dupBtn = el('button',{html:'Dupl.'});
+    dupBtn.addEventListener('click', ()=>{
+      const idx = statePilo.rows.indexOf(r);
+      statePilo.rows.splice(idx+1, 0, {...r, id:uid()});
+      renderPilo(container);
+    });
+    tdAct.appendChild(dupBtn);
+    const delBtn = el('button',{class:'btn-delete-circle', title:'Supprimer la ligne', html:'×'});
+    delBtn.addEventListener('click', ()=>{ statePilo.rows = statePilo.rows.filter(x=>x.id!==r.id); renderPilo(container); });
+    tdAct.appendChild(delBtn);
+    tr.appendChild(tdAct);
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  p2.appendChild(table);
+  container.appendChild(p2);
+  container.appendChild(decisionAndSignature('pilo', countAnomaliesPilo(), exportPilo));
+}
+
+function refreshPiloRow(tr, r){
+  ['FG','FD','equerrage'].forEach(k=>{
+    const inp = tr.querySelector(`input[data-key="${k}"]`);
+    if(!inp) return;
+    inp.classList.toggle('input-oob', piloFieldStatus(r,k)===false);
+  });
+  updateDecisionInfo('pilo', countAnomaliesPilo());
+}
+
+function exportPilo(){
+  const rows = [['Champ','Valeur']];
+  Object.entries(statePilo.header).forEach(([k,v])=>rows.push([k,v]));
+  rows.push([]);
+  rows.push(piloCols.map(c=>c[1]));
+  statePilo.rows.forEach(r=>{
+    rows.push(piloCols.map(c=>r[c[0]]));
+  });
+  rows.push([]); rows.push(['Observations', statePilo.observations]); rows.push(['Décision (signataire)', decisionLabel('pilo')]);
+  rows.push(...signerRows('pilo'));
+  downloadCSV('FC-PILOTIS.csv', rows);
+}
+
+/* ==========================================================
+   Decision + signature block (shared)
+   ========================================================== */
+/* ---------- Export Excel (.xlsx) fidèle à la mise en page imprimée ---------- */
+const XC = { // couleurs charte (ARGB)
+  navy:'FF002272', navyL:'FF003A8F', jade:'FF2BBFAA', jadeD:'FF1B9E8E', jadeL:'FFE6F8F6',
+  gold:'FFF2A900', goldL:'FFFFF8E5', red:'FFC8102E', redL:'FFFDEAED',
+  ink:'FF16233E', inkSoft:'FF5A6B85', line:'FFDCE2ED', lineS:'FFAEB9CE', band:'FFF4F4F2',
+  blueL:'FFE8EDF8', white:'FFFFFFFF', zebra:'FFF7F9FC', paper:'FFF1F4F9'
+};
+const XF = { sans:'IBM Plex Sans', mono:'IBM Plex Mono' };
+const xb = (color=XC.line, style='thin')=>({style, color:{argb:color}});
+const xBorderAll = (color=XC.line, style='thin')=>({top:xb(color,style), bottom:xb(color,style), left:xb(color,style), right:xb(color,style)});
+const xFill = (argb)=>({type:'pattern', pattern:'solid', fgColor:{argb}});
+
+function fmtDateFR(iso){
+  if(!iso) return '';
+  const [y,m,d] = String(iso).split('-'); return (y&&m&&d) ? `${d}/${m}/${y}` : iso;
+}
+function signerRows(tabKey){
+  const d = ensureDecisionState(tabKey);
+  return [
+    ['Réalisé par', d.signatures.realise.name, fmtDateFR(d.signatures.realise.date), d.signatures.realise.dataUrl?'Signé':'Non signé'],
+    ['Visa / vérifié par', d.signatures.visa.name, fmtDateFR(d.signatures.visa.date), d.signatures.visa.dataUrl?'Signé':'Non signé'],
+    ['Identifiant document', docId(tabKey)]
+  ];
+}
+
+/* Moteur de mise en page : grille de G colonnes, blocs empilés */
+class XLayout {
+  constructor(ws, wb, G, pageH){ this.ws=ws; this.wb=wb; this.G=G; this.r=1; this.pageH=pageH||740; }
+  usedHeight(){ let h=0; for(let i=1;i<this.r;i++){ const rh=this.ws.getRow(i).height; h += (rh||15); } return h; }
+  ensureSpace(needed){
+    if(this.singlePage) return;
+    const used=this.usedHeight(); const onPage = used % this.pageH;
+    if(onPage > this.pageH*0.82 || onPage + needed > this.pageH*1.15){ this.ws.getRow(this.r-1).addPageBreak(); }
+  }
+  merge(r1,c1,r2,c2){ if(!(r1===r2 && c1===c2)) this.ws.mergeCells(r1,c1,r2,c2); return this.ws.getCell(r1,c1); }
+  frame(r1,r2,c1,c2,color=XC.lineS,style='medium'){
+    for(let r=r1;r<=r2;r++) for(let c=c1;c<=c2;c++){
+      const cell=this.ws.getCell(r,c); const b=Object.assign({}, cell.border||{});
+      if(r===r1) b.top=xb(color,style); if(r===r2) b.bottom=xb(color,style);
+      if(c===c1) b.left=xb(color,style); if(c===c2) b.right=xb(color,style);
+      cell.border=b;
+    }
+  }
+  gap(h=8){ this.ws.getRow(this.r).height=h; this.r++; }
+
+  header(eyebrow, title, subtitle, docid){
+    const G=this.G, r=this.r;
+    for(let c=1;c<=G;c++){
+      for(let rr=r; rr<=r+2; rr++){
+        this.ws.getCell(rr,c).fill={type:'gradient',gradient:'angle',degree:0,stops:[{position:0,color:{argb:XC.navy}},{position:1,color:{argb:XC.navyL}}]};
+      }
+    }
+    const e=this.merge(r,1,r,G-3); e.value=eyebrow; e.font={name:XF.sans,size:8,bold:true,color:{argb:'FF8FE0D3'}}; e.alignment={vertical:'middle'};
+    const id=this.merge(r,G-2,r+2,G); id.value=docid; id.font={name:XF.mono,size:9,color:{argb:'FFC9D6EC'}}; id.alignment={horizontal:'right',vertical:'middle'};
+    const t=this.merge(r+1,1,r+1,G-3); t.value=title; t.font={name:XF.sans,size:15,bold:true,color:{argb:XC.white}}; t.alignment={vertical:'middle'};
+    const s=this.merge(r+2,1,r+2,G-3); s.value=subtitle; s.font={name:XF.sans,size:9.5,italic:true,color:{argb:'FFC9D6EC'}}; s.alignment={vertical:'middle'};
+    this.ws.getRow(r).height=14; this.ws.getRow(r+1).height=24; this.ws.getRow(r+2).height=16;
+    // liseré jade
+    for(let c=1;c<=G;c++){ const cell=this.ws.getCell(r+2,c); cell.border=Object.assign({},cell.border||{},{bottom:xb(XC.jade,'medium')}); }
+    this.r=r+3; this.gap(6);
+  }
+
+  cardHead(letter, letterFill, title){
+    const G=this.G, r=this.r;
+    const b=this.ws.getCell(r,1);
+    if(letter){ b.value=letter; b.fill=xFill(letterFill); b.font={name:XF.sans,size:9,bold:true,color:{argb:XC.white}}; b.alignment={horizontal:'center',vertical:'middle'}; }
+    else { b.fill=xFill(XC.band); }
+    const t=this.merge(r,letter?2:1,r,G); t.value=title.toUpperCase(); t.fill=xFill(XC.band);
+    t.font={name:XF.sans,size:8.5,bold:true,color:{argb:XC.navy}}; t.alignment={vertical:'middle',indent:1};
+    for(let c=1;c<=G;c++) this.ws.getCell(r,c).border={bottom:xb(XC.lineS)};
+    this.ws.getRow(r).height=18;
+    this.r=r+1;
+    return r;
+  }
+
+  fields(pairs, perRow=4){
+    const G=this.G; const span=Math.floor(G/perRow);
+    for(let i=0;i<pairs.length;i+=perRow){
+      const chunk=pairs.slice(i,i+perRow);
+      const rl=this.r, rv=this.r+1;
+      chunk.forEach(([label,value,req],j)=>{
+        const c1=1+j*span, c2=(j===perRow-1)?G:(c1+span-1);
+        const l=this.merge(rl,c1,rl,c2); l.value=(req?label+' *':label).toUpperCase();
+        l.font={name:XF.sans,size:7.5,bold:true,color:{argb:req?XC.red:XC.inkSoft}}; l.alignment={vertical:'bottom',indent:1};
+        const v=this.merge(rv,c1,rv,c2); v.value=(value===''||value==null)?'—':value;
+        v.font={name:XF.sans,size:10,bold:true,color:{argb:(value===''||value==null)?XC.lineS:XC.ink}}; v.alignment={vertical:'middle',indent:1};
+        for(let c=c1;c<=c2;c++){ this.ws.getCell(rv,c).border=Object.assign({},this.ws.getCell(rv,c).border||{},{bottom:xb(XC.lineS)}); }
+      });
+      this.ws.getRow(rl).height=12; this.ws.getRow(rv).height=18;
+      this.r+=2; this.gap(4);
+    }
+  }
+
+  callout(items, fillArgb, accentArgb){
+    const G=this.G, r=this.r;
+    const text=items.map((t,i)=>`(${i+1}) ${t}`).join('\n');
+    const c=this.merge(r,1,r,G); c.value=text; c.fill=xFill(fillArgb);
+    c.font={name:XF.sans,size:8.5,color:{argb:XC.ink}}; c.alignment={wrapText:true,vertical:'middle',indent:1};
+    for(let cc=1;cc<=G;cc++){ const cell=this.ws.getCell(r,cc); cell.fill=xFill(fillArgb); }
+    this.ws.getCell(r,1).border=Object.assign({},this.ws.getCell(r,1).border||{},{left:xb(accentArgb,'thick')});
+    this.ws.getRow(r).height=Math.max(22, 13*items.length + 6);
+    this.r=r+1; this.gap(4);
+  }
+
+  strip(segments){
+    const G=this.G, r=this.r;
+    const c=this.merge(r,1,r,G); c.value={richText: segments.flatMap((s,i)=>{
+      const parts=[]; if(i>0) parts.push({text:'   |   ', font:{name:XF.sans,size:8.5,color:{argb:XC.lineS}}});
+      parts.push({text:s.label, font:{name:XF.sans,size:8.5,color:{argb:XC.ink}}});
+      if(s.value) parts.push({text:s.value, font:{name:XF.sans,size:8.5,bold:true,color:{argb:XC.navy}}});
+      return parts; })};
+    for(let cc=1;cc<=G;cc++) this.ws.getCell(r,cc).fill=xFill(XC.blueL);
+    c.alignment={vertical:'middle',indent:1,wrapText:true};
+    this.ws.getRow(r).height=20;
+    this.r=r+1; this.gap(6);
+  }
+
+  table(headers, rows, opts={}){
+    const G=this.G, n=headers.length, r0=this.r;
+    let colAt;
+    if(opts.spans){
+      const starts=[]; let acc=1; opts.spans.forEach(w=>{ starts.push(acc); acc+=w; });
+      colAt = i => [starts[i], (i===n-1) ? G : starts[i]+opts.spans[i]-1];
+    } else {
+      colAt = i => (i===n-1) ? [1+i, G] : [1+i, 1+i]; // dernière colonne étirée jusqu'à G
+    }
+    // en-tête
+    headers.forEach((h,i)=>{
+      const [c1,c2]=colAt(i); const cell=this.merge(r0,c1,r0,c2);
+      cell.value=h; const jade=(opts.jadeCols||[]).includes(i); const navyL=(opts.idCols||[]).includes(i);
+      cell.fill=xFill(jade?XC.jadeD:(navyL?XC.navyL:XC.navy));
+      cell.font={name:XF.sans,size:8,bold:true,color:{argb:XC.white}};
+      cell.alignment={horizontal:'center',vertical:'middle',wrapText:true};
+      for(let c=c1;c<=c2;c++) this.ws.getCell(r0,c).border=xBorderAll(XC.lineS);
+    });
+    this.ws.getRow(r0).height=30;
+    let r=r0+1;
+    rows.forEach((vals,ri)=>{
+      vals.forEach((v,i)=>{
+        const [c1,c2]=colAt(i); const cell=this.merge(r,c1,r,c2);
+        cell.value=(v===null||v===undefined||v==='')?'':(isNaN(Number(v))||v===''?v:Number(v));
+        const jade=(opts.jadeCols||[]).includes(i);
+        cell.fill=xFill(jade?XC.jadeL:(ri%2?XC.zebra:XC.white));
+        cell.font={name:(opts.monoCols||[]).includes(i)?XF.mono:XF.sans,size:9,color:{argb:jade?XC.jadeD:XC.ink},bold:jade};
+        cell.alignment={horizontal:(opts.leftCols||[]).includes(i)?'left':'center',vertical:'middle'};
+        for(let c=c1;c<=c2;c++) this.ws.getCell(r,c).border=xBorderAll(XC.line);
+        if(opts.highlight && opts.highlight(i,v,ri)){ cell.fill=xFill(XC.redL); cell.font={name:XF.mono,size:9,bold:true,color:{argb:XC.red},underline:true}; }
+        if(opts.pill && opts.pill(i)){ const s=String(v||''); cell.font={name:XF.sans,size:9,bold:true,color:{argb:s==='C'||s==='OUI'?XC.jadeD:(s==='NC'||s==='NON'?XC.red:XC.lineS)}}; if(!s) cell.value='—'; }
+      });
+      this.ws.getRow(r).height=17;
+      r++;
+    });
+    this.frame(r0,r-1,1,G,XC.lineS,'medium');
+    this.r=r; this.gap(6);
+  }
+
+  textBlock(text, minLines=3){
+    const G=this.G, r=this.r;
+    const lines=Math.max(minLines, String(text||'').split('\n').length);
+    const c=this.merge(r,1,r+lines-1,G); c.value=text||'—';
+    c.font={name:XF.sans,size:9,color:{argb:text?XC.ink:XC.lineS},italic:!text}; c.alignment={wrapText:true,vertical:'top',indent:1};
+    this.frame(r,r+lines-1,1,G,XC.lineS,'thin');
+    this.r=r+lines; this.gap(6);
+  }
+
+  decision(override){
+    const G=this.G, r=this.r, mid=Math.floor(G/2);
+    const box=(c1,c2,label,active,color,colorL)=>{
+      const cell=this.merge(r,c1,r+1,c2);
+      cell.value=(active?'●  ':'○  ')+label;
+      cell.fill=xFill(active?colorL:XC.white);
+      cell.font={name:XF.sans,size:11,bold:true,color:{argb:active?color:XC.inkSoft}};
+      cell.alignment={horizontal:'center',vertical:'middle'};
+      this.frame(r,r+1,c1,c2,active?color:XC.lineS,'medium');
+    };
+    box(1,mid,'CONFORME',override==='c',XC.jadeD,XC.jadeL);
+    box(mid+1,G,'NON-CONFORME',override==='nc',XC.red,XC.redL);
+    this.ws.getRow(r).height=16; this.ws.getRow(r+1).height=16;
+    this.r=r+2; this.gap(6);
+  }
+
+  signatures(d){
+    const G=this.G, r=this.r, mid=Math.floor(G/2);
+    const slots=[['realise','RÉALISÉ PAR — ENTREPRISE',1,mid],['visa','VISA RATP — CONTRÔLEUR',mid+1,G]];
+    const SIGROWS=4;
+    slots.forEach(([k,title,c1,c2])=>{
+      const sig=d.signatures[k];
+      const h=this.merge(r,c1,r,c2); h.value=title; h.fill=xFill(XC.band);
+      h.font={name:XF.sans,size:7.5,bold:true,color:{argb:XC.inkSoft}}; h.alignment={vertical:'middle',indent:1};
+      const w=c2-c1+1, wn=Math.max(1,Math.round(w*0.42)), wv=Math.max(1,Math.round(w*0.2)), wd=w-wn-wv;
+      const lbl=(rr,cc1,cc2,text)=>{ const x=this.merge(rr,cc1,rr,cc2); x.value=text; x.font={name:XF.sans,size:7,bold:true,color:{argb:XC.inkSoft}}; x.alignment={indent:1,vertical:'bottom'}; };
+      const val=(rr,cc1,cc2,text)=>{ const x=this.merge(rr,cc1,rr,cc2); x.value=text||'—'; x.font={name:XF.sans,size:9.5,bold:true,color:{argb:text?XC.ink:XC.lineS}}; x.alignment={indent:1,vertical:'middle'}; for(let c=cc1;c<=cc2;c++) this.ws.getCell(rr,c).border=Object.assign({},this.ws.getCell(rr,c).border||{},{bottom:xb(XC.lineS)}); };
+      lbl(r+1,c1,c1+wn-1,'NOM'); lbl(r+1,c1+wn,c1+wn+wv-1,'VISA'); lbl(r+1,c1+wn+wv,c2,'DATE');
+      val(r+2,c1,c1+wn-1,sig.name); val(r+2,c1+wn,c1+wn+wv-1,sig.visa); val(r+2,c1+wn+wv,c2,fmtDateFR(sig.date));
+      lbl(r+3,c1,c2,'SIGNATURE');
+      const s=this.merge(r+4,c1,r+4+SIGROWS-1,c2); s.value=sig.dataUrl?'':'Non signé';
+      s.font={name:XF.sans,size:8,italic:true,color:{argb:XC.lineS}}; s.alignment={horizontal:'center',vertical:'middle'};
+      this.frame(r+4,r+4+SIGROWS-1,c1,c2,XC.lineS,'thin');
+      if(sig.dataUrl){
+        try{
+          const imgId=this.wb.addImage({base64:sig.dataUrl, extension:'png'});
+          this.ws.addImage(imgId,{tl:{col:c1-1+0.15,row:r+3+0.15}, ext:{width:150,height:52}});
+        }catch(err){}
+      }
+      this.frame(r,r+4+SIGROWS-1,c1,c2,XC.inkSoft,'medium');
+    });
+    this.ws.getRow(r).height=16; this.ws.getRow(r+1).height=11; this.ws.getRow(r+2).height=17; this.ws.getRow(r+3).height=11;
+    for(let i=0;i<SIGROWS;i++) this.ws.getRow(r+4+i).height=15;
+    this.r=r+4+SIGROWS; this.gap(6);
+  }
+
+  footer(docid){
+    const G=this.G, r=this.r;
+    const gen=new Date().toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'});
+    const c=this.merge(r,1,r,G); c.value=`${docid}      ·      RATP · MOE Voie · Fiche de contrôle qualité      ·      Édité le ${gen}`;
+    c.font={name:XF.mono,size:7.5,color:{argb:XC.inkSoft}}; c.alignment={horizontal:'center',vertical:'middle'};
+    for(let cc=1;cc<=G;cc++) this.ws.getCell(r,cc).border={top:xb(XC.lineS)};
+    this.r=r+1;
+  }
+}
+
+function xlsxPageSetup(ws, docid, landscape, singlePage){
+  ws.pageSetup = { paperSize:9, orientation: landscape?'landscape':'portrait', fitToPage:true, fitToWidth:1, fitToHeight: singlePage?1:0,
+    margins:{left:0.4,right:0.4,top:0.5,bottom:0.5,header:0.2,footer:0.2}, horizontalCentered:true };
+  ws.headerFooter = { oddFooter:`&L&8${docid}&C&8RATP · MOE Voie&R&8Page &P / &N` };
+  ws.views=[{showGridLines:false}];
+}
+
+function fieldPairs(tabKey){
+  if(tabKey==='mad'){ const h=stateMad.header; return [
+    ['Chantier',h.chantier],['Date',fmtDateFR(h.date),true],['Type de pose',h.typePose],['Voie n°',h.voie,true],
+    ['ADV n°',h.advNum,true],["Type d'appareil",h.typeAppareil],['Plancher',h.plancher],['Pose',h.pose],
+    ['Référence plan de pose',h.planRef]]; }
+  if(tabKey==='sc'){ const h=stateSC.header; return [
+    ['Projet',h.projet],['Voie(s)',h.voie,true],['Appareil(s)',h.appareils],['Date',fmtDateFR(h.date),true],
+    ['Heure',h.heure],['du PK',h.pkDebut,true],['au PK',h.pkFin,true]]; }
+  const h=statePilo.header; return [
+    ['Chantier',h.chantier],['Voie',h.voie,true],['Zone',h.zone],['Date',fmtDateFR(h.date),true],
+    ['Contrôle du PK',h.pkDebut,true],['au PK',h.pkFin]];
+}
+
+function buildXlsxFiche(ws, wb, tabKey){
+  const spec = {
+    mad:{ title:"Mise à disposition d'ADV", ref:'FC-MAD-ADV', G:12, widths:Array(12).fill(9.2),
+          notes:["Les points de contrôle renvoient à des fiches annexes (réception ADV, fiche du Titulaire, plan des connexions RATP) — s'y référer avant de statuer.",
+                 "Le champ « Moteur / Manœuvre installée » est informatif (OUI/NON) et n'entre pas dans le calcul de la décision globale."],
+          strip:null, landscape:false },
+    sc:{ title:'Contrôle de mise en œuvre de sous-couche de ballast', ref:'FC-BALL', G:11, widths:[9,9,7,15,10,12,10,12,14,15,11],
+         notes:["La tolérance s'applique séparément à chaque passe (Ép. SC n°1 et Ép. SC n°2), jamais à l'épaisseur totale.",
+                "Maillage de relevé : tous les 10 m aux extrémités de largeur et en axe de plateforme."],
+         strip:[{label:'Épaisseur par passe : ',value:`${stateSC.tolMin}–${stateSC.tolMax} mm`},{label:'Maillage : ',value:'tous les 10 m'},{label:'Ép. ballast totale = Niveau avant − fond de fouille (information)'}],
+         landscape:true },
+    pilo:{ title:'Contrôle de la position des pilotis', ref:'FC-PILO14', G:12, widths:[10,10,10,14,12,11,12,20,6,6,6,6],
+         notes:["Faire le relevé conformément aux tolérances de pose pilotis NTC 309.","Les valeurs hors tolérance sont surlignées automatiquement — la décision finale reste à votre charge."],
+         strip:[{label:'Espacement : ',value:`cote théorique ±${statePilo.tolSpacing} mm`},{label:'Équerrage : ',value:`±${statePilo.tolEquerrage} mm`},{label:'Selon NTC 309'}],
+         landscape:false }
+  }[tabKey];
+  const d = ensureDecisionState(tabKey);
+  const st = stateFor(tabKey);
+  ws.columns = spec.widths.map(w=>({width:w}));
+  const nRows = tabKey==='mad' ? madAdvItems.length : (tabKey==='sc' ? stateSC.rows.length : statePilo.rows.length);
+  const singlePage = nRows <= 14;
+  const L = new XLayout(ws, wb, spec.G, spec.landscape ? 500 : 740);
+  L.singlePage = singlePage;
+  const today=new Date().toLocaleDateString('fr-FR');
+  L.header(`${spec.ref} — RATP · MOE VOIE · CONTRÔLE QUALITÉ · ${today}`, 'FICHE DE CONTRÔLE QUALITÉ', spec.title, docId(tabKey));
+
+  L.cardHead('', null, 'Identification');
+  L.fields(fieldPairs(tabKey), 4);
+
+  if(tabKey==='mad'){
+    L.cardHead('A', XC.gold, 'Points de contrôle');
+    L.callout(spec.notes, XC.goldL, XC.gold);
+    const rows = madAdvItems.map(i=>[i.label, i.note||'', stateMad.items[i.key]||'']);
+    L.table(['Point de contrôle','Référence','Résultat'], rows, {leftCols:[0,1], pill:i=>i===2, spans:[6,4,2]});
+    L.fields([['Réf. fiche contrôle fournisseur (moteur)', stateMad.refFournisseur],['État général de l\'appareil', stateMad.etatGeneral]], 2);
+  } else if(tabKey==='sc'){
+    L.cardHead('A', XC.gold, 'Relevés');
+    L.callout(spec.notes, XC.goldL, XC.gold);
+    L.strip(spec.strip);
+    const headers=[...scCols.map(c=>c[1]),'Ép. ballast totale (mm)','Compactage'];
+    const rows=stateSC.rows.map(row=>[...scCols.map(c=>row[c[0]]), scEpTotal(row)===null?'':scEpTotal(row), row.compactage]);
+    const e1=scCols.findIndex(c=>c[0]==='epSC1'), e2=scCols.findIndex(c=>c[0]==='epSC2');
+    L.table(headers, rows, {idCols:[0,1,2], jadeCols:[9], monoCols:[1,3,4,5,6,7,8,9], pill:i=>i===10,
+      highlight:(i,v,ri)=>{ const row=stateSC.rows[ri]; return (i===e1&&scLayerStatus(row.epSC1)===false)||(i===e2&&scLayerStatus(row.epSC2)===false); }});
+  } else {
+    L.cardHead('A', XC.gold, 'Relevés');
+    L.callout(spec.notes, XC.goldL, XC.gold);
+    L.strip(spec.strip);
+    const headers=piloCols.map(c=>c[1]);
+    const rows=statePilo.rows.map(row=>piloCols.map(c=>row[c[0]]));
+    const fg=piloCols.findIndex(c=>c[0]==='FG'), fd=piloCols.findIndex(c=>c[0]==='FD'), eq=piloCols.findIndex(c=>c[0]==='equerrage');
+    L.table(headers, rows, {idCols:[0], monoCols:[1,2,3,6], leftCols:[7], spans:[1,1,1,1,1,1,1,5],
+      highlight:(i,v,ri)=>{ const row=statePilo.rows[ri]; return (i===fg&&piloFieldStatus(row,'FG')===false)||(i===fd&&piloFieldStatus(row,'FD')===false)||(i===eq&&piloFieldStatus(row,'equerrage')===false); }});
+  }
+
+  L.cardHead('C', XC.navy, 'Observations');
+  const nAnom = tabKey==='mad'?computeMadAnomalies():tabKey==='sc'?countAnomaliesSC():countAnomaliesPilo();
+  L.textBlock((nAnom?`${nAnom} valeur(s) hors tolérance détectée(s).\n`:'') + (st.observations||''), 3);
+
+  L.ensureSpace(240);
+  L.cardHead('D', XC.jade, 'Décision');
+  L.decision(d.override);
+
+  L.cardHead('S', XC.navy, 'Signatures');
+  L.signatures(d);
+  L.footer(docId(tabKey));
+  xlsxPageSetup(ws, docId(tabKey), spec.landscape, singlePage);
+}
+
+async function exportXlsx(tabKey, csvFallback){
+  if(typeof ExcelJS === 'undefined'){
+    // Pas de réseau pour charger la librairie (cas fréquent sur chantier) : repli automatique en CSV.
+    if(csvFallback) csvFallback();
+    return;
+  }
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'FCQ Digital'; wb.created = new Date();
+  const names = {mad:['FC-MAD-ADV','FC-MAD-ADV.xlsx'], sc:['FC-Sous-couche','FC-SOUS-COUCHE.xlsx'], pilo:['FC-Pilotis','FC-PILOTIS.xlsx']};
+  const [sheet, filename] = names[tabKey] || names.sc;
+  const ws = wb.addWorksheet(sheet);
+  buildXlsxFiche(ws, wb, tabKey);
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename.replace('.xlsx', `-${docId(tabKey)}.xlsx`); a.click();
+}
+
+const decisionState = {}; // tabKey -> {override, signatures:{realise,visa}}
+const docIds = {};
+const DOC_REFS = {mad:'FC-MAD-ADV', sc:'FC-BALL', pilo:'FC-PILO14'};
+function docId(tabKey){
+  if(!docIds[tabKey]){
+    const d = new Date();
+    const ymd = String(d.getFullYear()).slice(2) + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let tail=''; for(let i=0;i<4;i++) tail += alphabet[Math.floor(Math.random()*alphabet.length)];
+    docIds[tabKey] = `${DOC_REFS[tabKey]||'FC'}-${ymd}-${tail}`;
+  }
+  return docIds[tabKey];
+}
+
+function anomalyText(n){
+  if(n===0) return el('div',{class:'anomaly-info', html:'✓ Aucune valeur hors tolérance détectée sur les relevés saisis.'});
+  return el('div',{class:'anomaly-info has-anomalies', html:`<strong>${n}</strong> valeur(s) hors tolérance détectée(s) et surlignée(s) ci-dessus — à examiner avant de statuer.`});
+}
+function decisionColor(tabKey){
+  const v = decisionState[tabKey] && decisionState[tabKey].override;
+  return v==='c' ? 'var(--ok)' : v==='nc' ? 'var(--bad)' : 'var(--warn)';
+}
+function decisionLabel(tabKey){
+  const v = decisionState[tabKey] && decisionState[tabKey].override;
+  return v==='c' ? 'CONFORME' : v==='nc' ? 'NON CONFORME' : 'NON RENSEIGNÉE';
+}
+
+function ensureDecisionState(tabKey){
+  if(!decisionState[tabKey]) decisionState[tabKey] = {override:null};
+  const d = decisionState[tabKey];
+  if(!d.signatures) d.signatures = {};
+  ['realise','visa'].forEach(k=>{ if(!d.signatures[k]) d.signatures[k] = {name:'', date:'', dataUrl:''}; });
+  return d;
+}
+function refreshPrintDecision(tabKey){
+  const pd = document.getElementById(`print-decision-${tabKey}`);
+  if(pd) pd.innerHTML = `Décision : <strong style="color:${decisionColor(tabKey)}">${decisionLabel(tabKey)}</strong>`;
+}
+function stateFor(tabKey){ return tabKey==='mad' ? stateMad : tabKey==='sc' ? stateSC : statePilo; }
+
+function signatureCard(tabKey, slotKey, title){
+  const d = ensureDecisionState(tabKey);
+  const sig = d.signatures[slotKey];
+  if(sig.visa===undefined) sig.visa='';
+  const box = el('div',{class:'sig-box'});
+  box.appendChild(el('div',{class:'sig-head', html:title}));
+  const body = el('div',{class:'sig-body'});
+  const f = (label, input)=>{ const w=el('div',{class:'sig-field'}); w.appendChild(el('label',{html:label})); w.appendChild(input); return w; };
+  const nomInp = el('input',{type:'text', value:sig.name, placeholder:'Nom et prénom'});
+  nomInp.addEventListener('input', e=>{ sig.name = e.target.value; });
+  const visaInp = el('input',{type:'text', value:sig.visa, placeholder:'Initiales'});
+  visaInp.addEventListener('input', e=>{ sig.visa = e.target.value; });
+  const dateInp = el('input',{type:'date', value:sig.date});
+  dateInp.addEventListener('input', e=>{ sig.date = e.target.value; });
+  const row = el('div',{class:'sig-row'});
+  row.appendChild(f('Nom <span class="req-mark">*</span>', nomInp));
+  row.appendChild(f('Visa', visaInp));
+  row.appendChild(f('Date', dateInp));
+  body.appendChild(row);
+  const wrap = el('div',{class:'sig-wrap'});
+  const canvas = el('canvas',{class:'sig-canvas'});
+  wrap.appendChild(canvas);
+  const hint = el('div',{class:'sig-hint', html:'Signer ici'});
+  if(sig.dataUrl) hint.style.display='none';
+  wrap.appendChild(hint);
+  const clearBtn = el('button',{type:'button', class:'btn-sig-clear', title:'Effacer la signature', html:'✕ effacer'});
+  wrap.appendChild(clearBtn);
+  body.appendChild(f('Signature', wrap));
+  box.appendChild(body);
+  requestAnimationFrame(()=>{
+    const pad = attachSignaturePad(canvas, {
+      initial: sig.dataUrl,
+      onChange: url=>{ sig.dataUrl = url; hint.style.display = url ? 'none' : ''; }
+    });
+    clearBtn.addEventListener('click', ()=>pad.clear());
+  });
+  return box;
+}
+
+function decisionAndSignature(tabKey, anomalyCount, onExport){
+  const d = ensureDecisionState(tabKey);
+  const st = stateFor(tabKey);
+  const frag = document.createDocumentFragment();
+
+  /* C — Observations */
+  const obs = el('div',{class:'panel'});
+  obs.appendChild(el('h2',{html:'<span class="badge">C</span>Observations'}));
+  const infoWrap = el('div',{id:`anomaly-info-${tabKey}`});
+  infoWrap.appendChild(anomalyText(anomalyCount));
+  obs.appendChild(infoWrap);
+  const ta = el('textarea',{placeholder:'Anomalies, zones NC, réserves, actions correctives demandées…', rows:'3'});
+  ta.value = st.observations || '';
+  ta.addEventListener('input', e=>{ st.observations = e.target.value; });
+  obs.appendChild(ta);
+  frag.appendChild(obs);
+
+  /* D — Décision */
+  const dec = el('div',{class:'panel decision-panel'});
+  dec.appendChild(el('h2',{html:'<span class="badge badge-jade">D</span>Décision'}));
+  const row = el('div',{class:'dec-row'});
+  const mk = (val,label,cls,ico)=>{
+    const b = el('button',{type:'button', class:'dec-opt '+cls+(d.override===val?' active':'')});
+    b.appendChild(el('span',{class:'dec-ico', html:ico}));
+    b.appendChild(document.createTextNode(label));
+    b.addEventListener('click', ()=>{
+      d.override = (d.override===val) ? null : val;
+      row.querySelectorAll('.dec-opt').forEach(x=>x.classList.remove('active'));
+      if(d.override) b.classList.add('active');
+    });
+    return b;
+  };
+  row.appendChild(mk('c','CONFORME','conf','✓'));
+  row.appendChild(mk('nc','NON-CONFORME','nc','✗'));
+  dec.appendChild(row);
+  dec.appendChild(el('div',{class:'decision-hint', html:"La décision relève du signataire — les surlignages ne sont qu'une aide au contrôle."}));
+  frag.appendChild(dec);
+
+  /* S — Signatures */
+  const sigs = el('div',{class:'panel sig-panel'});
+  sigs.appendChild(el('h2',{html:'<span class="badge">S</span>Signatures'}));
+  const grid = el('div',{class:'sig-grid'});
+  grid.appendChild(signatureCard(tabKey, 'realise', 'Réalisé par — Entreprise'));
+  grid.appendChild(signatureCard(tabKey, 'visa', 'Visa RATP — Contrôleur'));
+  sigs.appendChild(grid);
+  const btnRow = el('div',{class:'btn-row', style:'margin-top:18px;'});
+  const exportBtn = el('button',{class:'btn btn-primary', html:'Exporter (.xlsx)'});
+  exportBtn.addEventListener('click', ()=>exportXlsx(tabKey, onExport));
+  const printBtn = el('button',{class:'btn', html:'Imprimer / PDF'});
+  printBtn.addEventListener('click', ()=>{ applyPrintColumns(tabKey); window.print(); });
+  btnRow.appendChild(exportBtn); btnRow.appendChild(printBtn);
+  let colsPanel = null;
+  if(colVisibility[tabKey]){
+    const colBtn = el('button',{class:'btn', html:'Colonnes à imprimer'});
+    colBtn.addEventListener('click', ()=>{
+      if(colsPanel){ colsPanel.remove(); colsPanel=null; return; }
+      colsPanel = buildColsPanel(tabKey);
+      sigs.appendChild(colsPanel);
+    });
+    btnRow.appendChild(colBtn);
+  }
+  sigs.appendChild(btnRow);
+  frag.appendChild(sigs);
+  return frag;
+}
+
+function updateDecisionInfo(tabKey, anomalyCount){
+  const wrap = document.getElementById(`anomaly-info-${tabKey}`);
+  if(!wrap) return;
+  wrap.innerHTML='';
+  wrap.appendChild(anomalyText(anomalyCount));
+}
+
+/* ---------- Choix des colonnes affichées à l'impression / PDF ---------- */
+function columnLabelsFor(tabKey){
+  if(tabKey==='sc') return [...scCols.map(c=>[c[0],c[1]]), ['epTotal','Ép. ballast totale'], ['compactage','Compactage']];
+  if(tabKey==='pilo') return piloCols.map(c=>[c[0],c[1]]);
+  return [];
+}
+function applyPrintColumns(tabKey){
+  let styleEl = document.getElementById('printColStyle');
+  if(!styleEl){ styleEl = document.createElement('style'); styleEl.id='printColStyle'; document.head.appendChild(styleEl); }
+  const vis = colVisibility[tabKey];
+  if(!vis){ styleEl.textContent=''; return; }
+  const hidden = Object.entries(vis).filter(([k,v])=>!v).map(([k])=>k);
+  styleEl.textContent = hidden.length ? `@media print{ ${hidden.map(k=>`[data-colkey="${k}"]{display:none !important;}`).join(' ')} }` : '';
+}
+function buildColsPanel(tabKey){
+  const panel = el('div',{class:'cols-panel'});
+  columnLabelsFor(tabKey).forEach(([key,label])=>{
+    const wrap = el('label');
+    const cb = el('input',{type:'checkbox'});
+    cb.checked = colVisibility[tabKey][key] !== false;
+    cb.addEventListener('change', ()=>{ colVisibility[tabKey][key] = cb.checked; });
+    wrap.appendChild(cb);
+    wrap.appendChild(document.createTextNode(label));
+    panel.appendChild(wrap);
+  });
+  return panel;
+}
+
+/* ==========================================================
+   Tab navigation
+   ========================================================== */
+const TABS = [
+  {key:'mad', label:'FC-MAD-ADV', render:renderMad},
+  {key:'sc', label:'FC Sous-couche', render:renderSC},
+  {key:'pilo', label:'FC-14 Pilotis', render:renderPilo},
+];
+let activeTab = 'mad';
+
+function renderTabs(){
+  const tabsEl = document.getElementById('tabs');
+  tabsEl.innerHTML='';
+  TABS.forEach(t=>{
+    const btn = el('button',{class:'tab-btn'+(t.key===activeTab?' active':''), html:t.label});
+    btn.addEventListener('click', ()=>{ activeTab=t.key; renderAll(); });
+    tabsEl.appendChild(btn);
+  });
+}
+function renderAll(){
+  renderTabs();
+  const content = document.getElementById('tab-content');
+  const tab = TABS.find(t=>t.key===activeTab);
+  tab.render(content);
+  const idEl = document.getElementById('mastheadDocId');
+  if(idEl) idEl.textContent = docId(activeTab);
+  const gen = new Date().toLocaleString('fr-FR', {dateStyle:'short', timeStyle:'short'});
+  content.appendChild(el('div',{class:'print-footer',
+    html:`<span>${docId(activeTab)}</span><span>RATP · MOE Voie · Fiche de contrôle qualité</span><span>Édité le ${gen}</span>`}));
+}
+renderAll();
+
+/* ---------- Paramètres du marché (tolérances) ---------- */
+function openSettings(){
+  document.getElementById('cfgScMin').value = stateSC.tolMin;
+  document.getElementById('cfgScMax').value = stateSC.tolMax;
+  document.getElementById('cfgPiloSpacing').value = statePilo.tolSpacing;
+  document.getElementById('cfgPiloEq').value = statePilo.tolEquerrage;
+  document.getElementById('settingsOverlay').hidden = false;
+}
+function closeSettings(){ document.getElementById('settingsOverlay').hidden = true; }
+document.getElementById('settingsBtn').addEventListener('click', openSettings);
+document.getElementById('settingsClose').addEventListener('click', closeSettings);
+document.getElementById('settingsOverlay').addEventListener('click', e=>{ if(e.target.id==='settingsOverlay') closeSettings(); });
+document.getElementById('settingsSave').addEventListener('click', ()=>{
+  const min = num(document.getElementById('cfgScMin').value);
+  const max = num(document.getElementById('cfgScMax').value);
+  const sp = num(document.getElementById('cfgPiloSpacing').value);
+  const eq = num(document.getElementById('cfgPiloEq').value);
+  if(min!==null) stateSC.tolMin = min;
+  if(max!==null) stateSC.tolMax = max;
+  if(sp!==null) statePilo.tolSpacing = sp;
+  if(eq!==null) statePilo.tolEquerrage = eq;
+  closeSettings();
+  renderAll();
+});
+
+/* ---------- Protection contre la perte de données (fermeture accidentelle sur tablette) ---------- */
+function hasAnyData(){
+  const rowHasData = r => Object.entries(r).some(([k,v]) => k!=='id' && v!=='' && v!=null);
+  return stateSC.rows.some(rowHasData) ||
+         statePilo.rows.some(rowHasData) ||
+         Object.values(stateMad.items).some(v=>v!=='') ||
+         Object.values(stateMad.header).some(v=>v!=='') ||
+         Object.values(decisionState).some(d => d && (d.override || (d.signatures && Object.values(d.signatures).some(sg=>sg.name||sg.date||sg.dataUrl))));
+}
+/* ---------- Rendu texte statique à l'impression (aucune valeur ne doit jamais être tronquée) ---------- */
+function preparePrintText(){
+  document.querySelectorAll('#tab-content input:not([type=radio]):not([type=checkbox])').forEach(inp=>{
+    if(inp._printSpan) return;
+    let displayVal = inp.value;
+    if(inp.type==='date' && inp.value){
+      const [y,m,d] = inp.value.split('-');
+      displayVal = `${d}/${m}/${y}`;
+    }
+    const span = document.createElement('span');
+    span.className = 'print-static-value' + (inp.classList.contains('input-oob') ? ' oob' : '') + (displayVal ? '' : ' empty');
+    span.textContent = displayVal || '—';
+    inp.insertAdjacentElement('afterend', span);
+    inp._printSpan = span;
+  });
+  document.querySelectorAll('#tab-content textarea').forEach(ta=>{
+    if(ta._printSpan) return;
+    const div = document.createElement('div');
+    div.className = 'print-static-block';
+    div.textContent = ta.value || '—';
+    ta.insertAdjacentElement('afterend', div);
+    ta._printSpan = div;
+  });
+}
+function restorePrintText(){
+  document.querySelectorAll('#tab-content input, #tab-content textarea').forEach(el=>{
+    if(el._printSpan){ el._printSpan.remove(); delete el._printSpan; }
+  });
+}
+window.addEventListener('beforeprint', preparePrintText);
+window.addEventListener('afterprint', restorePrintText);
+
+window.addEventListener('beforeunload', e=>{
+  if(hasAnyData()){ e.preventDefault(); e.returnValue=''; }
+});
+
+/* ---------- Sauvegarder / charger une session (les 3 fiches + tolérances) ---------- */
+function exportSession(){
+  const snapshot = {
+    version:1, savedAt:new Date().toISOString(),
+    stateMad, stateSC, statePilo,
+    decisionState, colVisibility, docIds
+  };
+  const blob = new Blob([JSON.stringify(snapshot)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `fcq-session-${new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')}.json`;
+  a.click();
+}
+function importSessionFile(file){
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const data = JSON.parse(reader.result);
+      if(data.stateMad) Object.assign(stateMad, data.stateMad);
+      if(data.stateSC) Object.assign(stateSC, data.stateSC);
+      if(data.statePilo) Object.assign(statePilo, data.statePilo);
+      if(data.decisionState) Object.assign(decisionState, data.decisionState);
+      if(data.colVisibility) Object.assign(colVisibility, data.colVisibility);
+      if(data.docIds) Object.assign(docIds, data.docIds);
+      renderAll();
+    }catch(err){ alert('Fichier de session illisible ou corrompu — impossible de charger.'); }
+  };
+  reader.readAsText(file);
+}
+document.getElementById('saveSessionBtn').addEventListener('click', exportSession);
+document.getElementById('loadSessionBtn').addEventListener('click', ()=>document.getElementById('loadSessionInput').click());
+document.getElementById('loadSessionInput').addEventListener('change', e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  if(hasAnyData() && !confirm('Charger une session remplacera les données actuellement saisies. Continuer ?')) { e.target.value=''; return; }
+  importSessionFile(file);
+  e.target.value='';
+});
+
+</script>
+</body>
+</html>
