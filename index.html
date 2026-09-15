@@ -218,6 +218,7 @@
   td input[data-key="FG"], td input[data-key="FD"]{min-width:86px;}
   td input[data-key="repere"], td input[data-key="nr"], td input[data-key="travee"],
   td input[data-key="equerrage"]{min-width:46px;}
+  td input.num-cell{font-variant-numeric:tabular-nums;}
   td input.input-oob{border-bottom:2px solid var(--bad) !important;background:var(--bad-bg);color:var(--bad);}
   td input.cell-selected, td select.cell-selected{background:var(--teal-bg) !important;border-bottom-color:var(--teal) !important;}
   .tot-cell{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--teal);font-weight:700;background:var(--teal-bg);}
@@ -597,7 +598,17 @@
 
 <script>
 /* ---------- Utilities ---------- */
-function num(v){ const n = parseFloat(v); return isNaN(n) ? null : n; }
+/* Saisie terrain : le clavier numérique d'une tablette française produit une VIRGULE décimale.
+   parseFloat("149,5") vaut 149 — une valeur tronquée silencieusement, qui peut faire basculer
+   une décision de conformité. On normalise la virgule et on refuse tout reliquat non numérique
+   plutôt que de lire un préfixe ("12abc" → 12). */
+function num(v){
+  if(v===null || v===undefined) return null;
+  const s = String(v).trim().replace(/\s/g,'').replace(',', '.');
+  if(s==='' || !/^[+-]?(\d+\.?\d*|\.\d+)$/.test(s)) return null;
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
 function uid(){ return Math.random().toString(36).slice(2,9); }
 function el(tag, attrs={}, children=[]){
   const e = document.createElement(tag);
@@ -624,13 +635,26 @@ function notesCallout(items){
 }
 function pillToggle(options, currentValue, onChange){
   const wrap = el('div',{class:'pill-toggle'});
+  let value = currentValue;
+  const paint = ()=>{
+    wrap.querySelectorAll('.pill-opt').forEach(b=>{
+      const opt = b.dataset.opt;
+      b.className = 'pill-opt' + (opt===value
+        ? (opt==='C' ? ' active pill-c' : opt==='NC' ? ' active pill-nc' : ' active')
+        : '');
+    });
+  };
   options.forEach(opt=>{
-    let cls = 'pill-opt';
-    if(opt===currentValue) cls += opt==='C' ? ' active pill-c' : opt==='NC' ? ' active pill-nc' : ' active';
-    const btn = el('button',{type:'button', class:cls, html:opt});
-    btn.addEventListener('click', ()=>onChange(currentValue===opt ? '' : opt));
+    const btn = el('button',{type:'button', class:'pill-opt', html:opt});
+    btn.dataset.opt = opt;
+    btn.addEventListener('click', ()=>{
+      value = (value===opt) ? '' : opt;
+      paint(); // mise à jour locale : évite de re-rendre tout l'onglet (perte de scroll, focus et pads de signature)
+      onChange(value);
+    });
     wrap.appendChild(btn);
   });
+  paint();
   return wrap;
 }
 /* Enveloppe un tableau dans un conteneur scrollable horizontalement (tablette/mobile) */
@@ -656,10 +680,13 @@ function wrapTable(table, stickyCols=0){
         if(c) ro.observe(c);
       });
     } else {
+      // Repli sans ResizeObserver : l'écouteur est rattaché au tableau pour pouvoir être retiré
+      // quand celui-ci quitte le DOM (sinon un écouteur s'accumule à chaque rendu d'onglet).
       requestAnimationFrame(sync);
       setTimeout(sync, 0);
+      window.addEventListener('resize', sync);
+      table._detachResize = ()=>window.removeEventListener('resize', sync);
     }
-    window.addEventListener('resize', sync);
   }
   return wrap;
 }
@@ -673,11 +700,20 @@ function buildHeaderCell(key, labelHtml, onClear){
   }
   return th;
 }
+/* Déclenche un téléchargement et libère l'URL objet : sans revokeObjectURL, chaque export
+   retient son blob en mémoire jusqu'à la fermeture de l'onglet. */
+function triggerDownload(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
 function downloadCSV(filename, rows){
   const csv = rows.map(r => r.map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(';')).join('\n');
-  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+  triggerDownload(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'}), filename);
 }
 
 /* ---------- Collage multi-cellules depuis Excel, avec aperçu et exclusion de colonnes ---------- */
@@ -747,7 +783,15 @@ function openPastePreview(){
     const tr = el('tr');
     for(let ci=0; ci<nCols; ci++){
       const v = row[ci] ?? '';
-      const td = el('td',{html: v==='' ? '<span style="color:var(--ink-soft)">(vide)</span>' : v});
+      let td;
+      if(v===''){
+        td = el('td',{html:'<span style="color:var(--ink-soft)">(vide)</span>'});
+      } else {
+        // textContent et non html : une valeur collée depuis Excel peut contenir « < » ou « > »
+        // (« <10 », « >150 » sont courants en métrologie) — l'insérer en HTML casse l'aperçu.
+        td = el('td');
+        td.textContent = v;
+      }
       if(!include[ci]) td.style.opacity='0.4';
       tr.appendChild(td);
     }
@@ -762,7 +806,7 @@ function openPastePreview(){
   const confirmBtn = el('button',{class:'btn btn-primary', html:'Coller'});
   confirmBtn.addEventListener('click', commitPendingPaste);
   const cancelBtn = el('button',{class:'btn', html:'Annuler'});
-  cancelBtn.addEventListener('click', closePastePreview);
+  cancelBtn.addEventListener('click', cancelPendingPaste);
   actionRow.appendChild(confirmBtn); actionRow.appendChild(cancelBtn);
   panel.appendChild(actionRow);
 
@@ -772,6 +816,12 @@ function openPastePreview(){
 function closePastePreview(){
   const overlay = document.getElementById('pastePreviewOverlay');
   if(overlay) overlay.remove();
+}
+/* Annulation explicite : closePastePreview() sert aussi au re-rendu de l'aperçu (cases à cocher),
+   elle ne doit donc pas purger pendingPaste — sinon le re-rendu perdrait les données collées. */
+function cancelPendingPaste(){
+  pendingPaste = null;
+  closePastePreview();
 }
 function commitPendingPaste(){
   const {rowIndex, cells, rowsArr, newRowFn, rerender} = pendingPaste;
@@ -883,6 +933,7 @@ document.getElementById('clock').textContent = new Date().toLocaleDateString('fr
 function attachSignaturePad(canvas, opts={}){
   const ctx = canvas.getContext('2d');
   let dataUrl = opts.initial || '';
+  let drawing=false, last=null;
   function paintFromDataUrl(){
     if(!dataUrl) return;
     const img = new Image();
@@ -890,6 +941,10 @@ function attachSignaturePad(canvas, opts={}){
     img.src = dataUrl;
   }
   function resize(){
+    // Redimensionner un canvas l'efface, et on ne sait repeindre que la dernière image validée
+    // (au relâché du stylet). Un redimensionnement pendant le tracé — ouverture du clavier
+    // virtuel sur tablette — effacerait donc la signature en cours : on le diffère.
+    if(drawing) return;
     const ratio = window.devicePixelRatio || 1;
     canvas.width = Math.max(1, canvas.clientWidth * ratio);
     canvas.height = Math.max(1, canvas.clientHeight * ratio);
@@ -901,9 +956,10 @@ function attachSignaturePad(canvas, opts={}){
   if(window.ResizeObserver){
     new ResizeObserver(()=>resize()).observe(canvas);
   } else {
+    // Rattaché au canvas pour pouvoir être retiré au démontage (cf. detachStaleListeners).
     window.addEventListener('resize', resize);
+    canvas._detachResize = ()=>window.removeEventListener('resize', resize);
   }
-  let drawing=false, last=null;
   function pos(e){
     const r = canvas.getBoundingClientRect();
     return {x:e.clientX-r.left, y:e.clientY-r.top};
@@ -1006,6 +1062,7 @@ function refreshProgressStrip(id, filled, total){
 }
 
 function renderMad(container){
+  detachStaleListeners(container);
   container.innerHTML='';
   container.appendChild(printHeader("Mise à disposition d'ADV", 'FC-MAD-ADV'));
   const madRequired = ['voie','advNum','date'];
@@ -1034,7 +1091,7 @@ function renderMad(container){
     const opts = k==='plancher' ? ['bois','composite','béton'] : ['béton','ballast'];
     const wrap = el('div');
     wrap.appendChild(el('label',{html: k==='plancher' ? 'Plancher' : 'Pose'}));
-    wrap.appendChild(pillToggle(opts, stateMad.header[k], val=>{ stateMad.header[k]=val; renderMad(container); }));
+    wrap.appendChild(pillToggle(opts, stateMad.header[k], val=>{ stateMad.header[k]=val; }));
     grid.appendChild(wrap);
   });
   p1.appendChild(grid);
@@ -1055,7 +1112,10 @@ function renderMad(container){
     tr.appendChild(el('td',{html:`<span style="color:var(--ink-soft)">${item.note}</span>`}));
     const tdSel = el('td');
     const opts = item.type==='CNC' ? ['C','NC'] : ['OUI','NON'];
-    tdSel.appendChild(pillToggle(opts, stateMad.items[item.key], val=>{ stateMad.items[item.key]=val; renderMad(container); }));
+    tdSel.appendChild(pillToggle(opts, stateMad.items[item.key], val=>{
+      stateMad.items[item.key]=val;
+      updateDecisionInfo('mad', computeMadAnomalies());
+    }));
     tr.appendChild(tdSel);
     tbody.appendChild(tr);
   });
@@ -1115,7 +1175,13 @@ stateSC.rows.push(newSCRow());
 function scEpTotal(r){
   const avant = num(r.niveauAvant), ff = num(r.niveauFF);
   if(avant===null || ff===null) return null;
-  return avant - ff;
+  // Arrondi : une soustraction de décimaux en virgule flottante produit sinon des valeurs
+  // du type 129.20000000000002, affichées telles quelles dans la cellule et dans l'export.
+  return Math.round((avant - ff) * 1000) / 1000;
+}
+/* Affichage FR : séparateur décimal virgule, pas de zéros inutiles. */
+function fmtNum(n){
+  return n===null || n===undefined ? '—' : String(n).replace('.', ',');
 }
 /* La tolérance 10-15 cm (F11 sur la fiche source) porte sur CHAQUE passe
    individuelle (Ép. SC n°1 et Ép. SC n°2), pas sur le total ballast. */
@@ -1125,7 +1191,11 @@ function scLayerStatus(v){
   return n >= stateSC.tolMin && n <= stateSC.tolMax;
 }
 function countAnomaliesSC(){
-  return stateSC.rows.filter(r => scLayerStatus(r.epSC1)===false || scLayerStatus(r.epSC2)===false).length;
+  // Une ligne compte comme anomalie si une passe est hors tolérance OU si le compactage est
+  // marqué NC : le bandeau qui guide la décision doit refléter tous les motifs de non-conformité.
+  return stateSC.rows.filter(r =>
+    scLayerStatus(r.epSC1)===false || scLayerStatus(r.epSC2)===false || r.compactage==='NC'
+  ).length;
 }
 
 const scCols = [
@@ -1140,6 +1210,7 @@ const colVisibility = {
 };
 
 function renderSC(container){
+  detachStaleListeners(container);
   container.innerHTML='';
   container.appendChild(printHeader('Contrôle de mise en œuvre de sous-couche de ballast', 'FC-BALL'));
   const scRequired = ['voie','pkDebut','pkFin','date'];
@@ -1209,7 +1280,12 @@ function renderSC(container){
     const tr = el('tr');
     scCols.forEach(([k,label,type],colIdx)=>{
       const td = el('td',{'data-colkey':k});
-      const inp = el('input',{type: type==='number'?'number':'text', value:r[k], step:'any'});
+      // type="text" + inputmode="decimal" plutôt que type="number" : en locale FR, un champ
+      // number rejette « 149,5 » et renvoie une valeur VIDE (perte de saisie silencieuse,
+      // y compris au collage depuis Excel). num() se charge de la conversion.
+      const isNum = type==='number';
+      const inp = el('input',{type:'text', value:r[k]});
+      if(isNum){ inp.setAttribute('inputmode','decimal'); inp.classList.add('num-cell'); }
       inp.dataset.key = k;
       wireCell(inp, 'sc', rowIdx, colIdx);
       if((k==='epSC1' || k==='epSC2') && scLayerStatus(r[k])===false) inp.classList.add('input-oob');
@@ -1222,10 +1298,13 @@ function renderSC(container){
       td.appendChild(inp);
       tr.appendChild(td);
     });
-    const tdTot = el('td',{class:'tot-cell', 'data-colkey':'epTotal', html: scEpTotal(r)===null?'—':String(scEpTotal(r))});
+    const tdTot = el('td',{class:'tot-cell', 'data-colkey':'epTotal', html: fmtNum(scEpTotal(r))});
     tr.appendChild(tdTot);
     const tdComp = el('td',{'data-colkey':'compactage'});
-    tdComp.appendChild(pillToggle(['C','NC'], r.compactage, val=>{ r.compactage=val; renderSC(container); }));
+    tdComp.appendChild(pillToggle(['C','NC'], r.compactage, val=>{
+      r.compactage=val;
+      updateDecisionInfo('sc', countAnomaliesSC());
+    }));
     tr.appendChild(tdComp);
     const tdAct = el('td',{class:'row-actions'});
     const dupBtn = el('button',{html:'Dupl.'});
@@ -1249,7 +1328,7 @@ function renderSC(container){
 
 function refreshSCRow(tr, r){
   const totCell = tr.querySelector('.tot-cell');
-  totCell.textContent = scEpTotal(r)===null ? '—' : String(scEpTotal(r));
+  totCell.textContent = fmtNum(scEpTotal(r));
   ['epSC1','epSC2'].forEach(k=>{
     const inp = tr.querySelector(`input[data-key="${k}"]`);
     if(!inp) return;
@@ -1304,6 +1383,7 @@ const piloCols = [
 colVisibility.pilo = Object.fromEntries(piloCols.map(c=>[c[0],true]));
 
 function renderPilo(container){
+  detachStaleListeners(container);
   container.innerHTML='';
   container.appendChild(printHeader('Contrôle de la position des pilotis', 'FC-PILO14'));
   const piloRequired = ['voie','pkDebut','date'];
@@ -1366,7 +1446,12 @@ function renderPilo(container){
     const tr = el('tr');
     piloCols.forEach(([k,label,type],colIdx)=>{
       const td = el('td',{'data-colkey':k});
-      const inp = el('input',{type: type==='number'?'number':'text', value:r[k], step:'any'});
+      // type="text" + inputmode="decimal" plutôt que type="number" : en locale FR, un champ
+      // number rejette « 149,5 » et renvoie une valeur VIDE (perte de saisie silencieuse,
+      // y compris au collage depuis Excel). num() se charge de la conversion.
+      const isNum = type==='number';
+      const inp = el('input',{type:'text', value:r[k]});
+      if(isNum){ inp.setAttribute('inputmode','decimal'); inp.classList.add('num-cell'); }
       inp.dataset.key = k;
       wireCell(inp, 'pilo', rowIdx, colIdx);
       if(['FG','FD','equerrage'].includes(k) && piloFieldStatus(r,k)===false) inp.classList.add('input-oob');
@@ -1424,17 +1509,39 @@ function exportPilo(){
 /* ==========================================================
    Decision + signature block (shared)
    ========================================================== */
-/* ---------- Export Excel (.xlsx) fidèle à la mise en page imprimée ---------- */
-const XC = { // couleurs charte (ARGB)
-  navy:'FF002272', navyL:'FF003A8F', jade:'FF2BBFAA', jadeD:'FF1B9E8E', jadeL:'FFE6F8F6',
-  gold:'FFF2A900', goldL:'FFFFF8E5', red:'FFC8102E', redL:'FFFDEAED',
-  ink:'FF16233E', inkSoft:'FF5A6B85', line:'FFDCE2ED', lineS:'FFAEB9CE', band:'FFF4F4F2',
-  blueL:'FFE8EDF8', white:'FFFFFFFF', zebra:'FFF7F9FC', paper:'FFF1F4F9'
+/* ---------- Export Excel (.xlsx) — charte des fiches de contrôle RATP ----------
+   Reprise des conventions des fiches FC papier (relevé sur FC-LRS-12) :
+   · Parisine Office 10 pt, police unique — gras pour les titres de section, 14 pt pour le titre
+   · DEUX fonds seulement, et ils portent le sens :
+       cyan CCFFFF = cellule à renseigner par l'opérateur
+       jaune FFFF99 = valeur calculée par la fiche
+   · DEUX épaisseurs de trait : medium pour le contour des blocs, thin en interne
+   · l'unité vit dans le format de nombre, jamais dans la valeur saisie
+   Aucune couleur décorative : ce qui est coloré est signifiant. */
+const XC = {
+  black:'FF000000', white:'FFFFFFFF',
+  input:'FFCCFFFF',  // saisie opérateur
+  calc:'FFFFFF99',   // valeur calculée
+  // alias conservés pour ne pas casser les appels existants — tous ramenés à la charte
+  navy:'FF000000', navyL:'FF000000', jade:'FF000000', jadeD:'FF000000', jadeL:'FFFFFFFF',
+  gold:'FF000000', goldL:'FFFFFFFF', red:'FF000000', redL:'FFFFFF99',
+  ink:'FF000000', inkSoft:'FF000000', line:'FF000000', lineS:'FF000000', band:'FFFFFFFF',
+  blueL:'FFFFFFFF', zebra:'FFFFFFFF', paper:'FFFFFFFF'
 };
-const XF = { sans:'IBM Plex Sans', mono:'IBM Plex Mono' };
+const XF = { sans:'Parisine Office', mono:'Parisine Office' };
+/* Formats de nombre porteurs d'unité, comme sur la fiche papier. */
+const XNF = {
+  mm:'#,##0" mm";\\-#,##0" mm"',
+  mmDec:'#,##0.0" mm";\\-#,##0.0" mm"',
+  m:'#,##0" m";\\-#,##0" m"',
+  degC:'#,##0" °C";\\-#,##0" °C"',
+  pk:'#,##0.000'
+};
 const xb = (color=XC.line, style='thin')=>({style, color:{argb:color}});
 const xBorderAll = (color=XC.line, style='thin')=>({top:xb(color,style), bottom:xb(color,style), left:xb(color,style), right:xb(color,style)});
 const xFill = (argb)=>({type:'pattern', pattern:'solid', fgColor:{argb}});
+/* Index de colonne (1-based) → lettre Excel, pour composer les formules. */
+function colLetter(n){ let s=''; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26); } return s; }
 
 function fmtDateFR(iso){
   if(!iso) return '';
@@ -1471,31 +1578,33 @@ class XLayout {
 
   header(eyebrow, title, subtitle, docid){
     const G=this.G, r=this.r;
-    for(let c=1;c<=G;c++){
-      for(let rr=r; rr<=r+2; rr++){
-        this.ws.getCell(rr,c).fill={type:'gradient',gradient:'angle',degree:0,stops:[{position:0,color:{argb:XC.navy}},{position:1,color:{argb:XC.navyL}}]};
-      }
-    }
-    const e=this.merge(r,1,r,G-3); e.value=eyebrow; e.font={name:XF.sans,size:8,bold:true,color:{argb:'FF8FE0D3'}}; e.alignment={vertical:'middle'};
-    const id=this.merge(r,G-2,r+2,G); id.value=docid; id.font={name:XF.mono,size:9,color:{argb:'FFC9D6EC'}}; id.alignment={horizontal:'right',vertical:'middle'};
-    const t=this.merge(r+1,1,r+1,G-3); t.value=title; t.font={name:XF.sans,size:15,bold:true,color:{argb:XC.white}}; t.alignment={vertical:'middle'};
-    const s=this.merge(r+2,1,r+2,G-3); s.value=subtitle; s.font={name:XF.sans,size:9.5,italic:true,color:{argb:'FFC9D6EC'}}; s.alignment={vertical:'middle'};
-    this.ws.getRow(r).height=14; this.ws.getRow(r+1).height=24; this.ws.getRow(r+2).height=16;
-    // liseré jade
-    for(let c=1;c<=G;c++){ const cell=this.ws.getCell(r+2,c); cell.border=Object.assign({},cell.border||{},{bottom:xb(XC.jade,'medium')}); }
+    // Bandeau de la fiche papier : mention réseau à gauche, référence FC à droite,
+    // titre centré en capitales 14 pt. Aucun aplat — l'encadrement suffit.
+    const e=this.merge(r,1,r,G-4); e.value=eyebrow;
+    e.font={name:XF.sans,size:9,color:{argb:XC.black}}; e.alignment={vertical:'middle',indent:1};
+    const id=this.merge(r,G-3,r,G); id.value=docid;
+    id.font={name:XF.sans,size:9,color:{argb:XC.black}}; id.alignment={horizontal:'right',vertical:'middle'};
+    const t=this.merge(r+1,1,r+1,G); t.value=String(title).toUpperCase();
+    t.font={name:XF.sans,size:14,bold:true,color:{argb:XC.black}};
+    t.alignment={horizontal:'center',vertical:'middle'};
+    this.frame(r+1,r+1,1,G,XC.black,'medium');
+    const s=this.merge(r+2,1,r+2,G); s.value=subtitle;
+    s.font={name:XF.sans,size:9,color:{argb:XC.black}}; s.alignment={horizontal:'center',vertical:'middle'};
+    this.ws.getRow(r).height=13; this.ws.getRow(r+1).height=20; this.ws.getRow(r+2).height=13;
     this.r=r+3; this.gap(6);
   }
 
+  /* Titre de section numéroté et encadré, comme « 1/ CARACTERISTIQUES DU TRONÇON » sur la fiche. */
   cardHead(letter, letterFill, title){
     const G=this.G, r=this.r;
-    const b=this.ws.getCell(r,1);
-    if(letter){ b.value=letter; b.fill=xFill(letterFill); b.font={name:XF.sans,size:9,bold:true,color:{argb:XC.white}}; b.alignment={horizontal:'center',vertical:'middle'}; }
-    else { b.fill=xFill(XC.band); }
-    const t=this.merge(r,letter?2:1,r,G); t.value=title.toUpperCase(); t.fill=xFill(XC.band);
-    t.font={name:XF.sans,size:8.5,bold:true,color:{argb:XC.navy}}; t.alignment={vertical:'middle',indent:1};
-    for(let c=1;c<=G;c++) this.ws.getCell(r,c).border={bottom:xb(XC.lineS)};
-    this.ws.getRow(r).height=18;
-    this.r=r+1;
+    this._sectionNo = (this._sectionNo||0)+1;
+    const t=this.merge(r,1,r,G);
+    t.value=`${this._sectionNo}/ ${String(title).toUpperCase()}`;
+    t.font={name:XF.sans,size:10,bold:true,color:{argb:XC.black}};
+    t.alignment={vertical:'middle',indent:1};
+    this.frame(r,r,1,G,XC.black,'medium');
+    this.ws.getRow(r).height=16;
+    this.r=r+1; this.gap(3);
     return r;
   }
 
@@ -1506,11 +1615,13 @@ class XLayout {
       const rl=this.r, rv=this.r+1;
       chunk.forEach(([label,value,req],j)=>{
         const c1=1+j*span, c2=(j===perRow-1)?G:(c1+span-1);
-        const l=this.merge(rl,c1,rl,c2); l.value=(req?label+' *':label).toUpperCase();
-        l.font={name:XF.sans,size:7.5,bold:true,color:{argb:req?XC.red:XC.inkSoft}}; l.alignment={vertical:'bottom',indent:1};
-        const v=this.merge(rv,c1,rv,c2); v.value=(value===''||value==null)?'—':value;
-        v.font={name:XF.sans,size:10,bold:true,color:{argb:(value===''||value==null)?XC.lineS:XC.ink}}; v.alignment={vertical:'middle',indent:1};
-        for(let c=c1;c<=c2;c++){ this.ws.getCell(rv,c).border=Object.assign({},this.ws.getCell(rv,c).border||{},{bottom:xb(XC.lineS)}); }
+        const l=this.merge(rl,c1,rl,c2); l.value=(req?label+' *':label);
+        l.font={name:XF.sans,size:9,color:{argb:XC.black}}; l.alignment={horizontal:'center',vertical:'bottom'};
+        const v=this.merge(rv,c1,rv,c2); v.value=(value===''||value==null)?'':value;
+        v.font={name:XF.sans,size:10,color:{argb:XC.black}}; v.alignment={horizontal:'center',vertical:'middle'};
+        // cyan = cellule renseignée par l'opérateur (convention de la fiche papier)
+        for(let c=c1;c<=c2;c++) this.ws.getCell(rv,c).fill=xFill(XC.input);
+        this.frame(rv,rv,c1,c2,XC.black,'medium');
       });
       this.ws.getRow(rl).height=12; this.ws.getRow(rv).height=18;
       this.r+=2; this.gap(4);
@@ -1550,42 +1661,51 @@ class XLayout {
     } else {
       colAt = i => (i===n-1) ? [1+i, G] : [1+i, 1+i]; // dernière colonne étirée jusqu'à G
     }
-    // en-tête
+    // en-tête : pas d'aplat, gras + encadrement medium (convention fiche papier)
     headers.forEach((h,i)=>{
       const [c1,c2]=colAt(i); const cell=this.merge(r0,c1,r0,c2);
-      cell.value=h; const jade=(opts.jadeCols||[]).includes(i); const navyL=(opts.idCols||[]).includes(i);
-      cell.fill=xFill(jade?XC.jadeD:(navyL?XC.navyL:XC.navy));
-      cell.font={name:XF.sans,size:8,bold:true,color:{argb:XC.white}};
+      cell.value=h;
+      cell.font={name:XF.sans,size:9,bold:true,color:{argb:XC.black}};
       cell.alignment={horizontal:'center',vertical:'middle',wrapText:true};
-      for(let c=c1;c<=c2;c++) this.ws.getCell(r0,c).border=xBorderAll(XC.lineS);
+      for(let c=c1;c<=c2;c++) this.ws.getCell(r0,c).border=xBorderAll(XC.black,'thin');
     });
     this.ws.getRow(r0).height=30;
     let r=r0+1;
     rows.forEach((vals,ri)=>{
       vals.forEach((v,i)=>{
         const [c1,c2]=colAt(i); const cell=this.merge(r,c1,r,c2);
-        cell.value=(v===null||v===undefined||v==='')?'':(isNaN(Number(v))||v===''?v:Number(v));
-        const jade=(opts.jadeCols||[]).includes(i);
-        cell.fill=xFill(jade?XC.jadeL:(ri%2?XC.zebra:XC.white));
-        cell.font={name:(opts.monoCols||[]).includes(i)?XF.mono:XF.sans,size:9,color:{argb:jade?XC.jadeD:XC.ink},bold:jade};
-        cell.alignment={horizontal:(opts.leftCols||[]).includes(i)?'left':'center',vertical:'middle'};
-        for(let c=c1;c<=c2;c++) this.ws.getCell(r,c).border=xBorderAll(XC.line);
-        if(opts.highlight && opts.highlight(i,v,ri)){ cell.fill=xFill(XC.redL); cell.font={name:XF.mono,size:9,bold:true,color:{argb:XC.red},underline:true}; }
-        if(opts.pill && opts.pill(i)){ const s=String(v||''); cell.font={name:XF.sans,size:9,bold:true,color:{argb:s==='C'||s==='OUI'?XC.jadeD:(s==='NC'||s==='NON'?XC.red:XC.lineS)}}; if(!s) cell.value='—'; }
+        const isCalc=(opts.calcCols||opts.jadeCols||[]).includes(i);
+        const isText=(opts.leftCols||[]).includes(i);
+        const isFixed=(opts.readOnlyCols||[]).includes(i); // libellés imprimés, pas des cellules à remplir
+        if(v && typeof v==='object' && typeof v._formula==='function'){
+          cell.value={formula:v._formula(r).slice(1)}; // ExcelJS attend la formule sans le « = »
+        } else {
+          cell.value=(v===null||v===undefined||v==='')?'':((isText||isNaN(Number(v)))?v:Number(v));
+        }
+        // jaune = calculé par la fiche ; cyan = saisi par l'opérateur. Rien d'autre n'est coloré.
+        cell.fill=xFill(isFixed?XC.white:(isCalc?XC.calc:XC.input));
+        cell.font={name:XF.sans,size:10,color:{argb:XC.black}};
+        cell.alignment={horizontal:isText?'left':'center',vertical:'middle'};
+        if(opts.numFmt && opts.numFmt[i]) cell.numFmt=opts.numFmt[i];
+        for(let c=c1;c<=c2;c++) this.ws.getCell(r,c).border=xBorderAll(XC.black,'thin');
+        // hors tolérance : pas de couleur supplémentaire, on marque en gras souligné
+        if(opts.highlight && opts.highlight(i,v,ri)){ cell.font={name:XF.sans,size:10,bold:true,color:{argb:XC.black},underline:true}; }
+        if(opts.pill && opts.pill(i)){ const s=String(v||''); cell.value=s||''; cell.font={name:XF.sans,size:10,bold:true,color:{argb:XC.black}}; }
       });
       this.ws.getRow(r).height=17;
       r++;
     });
-    this.frame(r0,r-1,1,G,XC.lineS,'medium');
+    this.frame(r0,r-1,1,G,XC.black,'medium');
     this.r=r; this.gap(6);
   }
 
   textBlock(text, minLines=3){
     const G=this.G, r=this.r;
     const lines=Math.max(minLines, String(text||'').split('\n').length);
-    const c=this.merge(r,1,r+lines-1,G); c.value=text||'—';
-    c.font={name:XF.sans,size:9,color:{argb:text?XC.ink:XC.lineS},italic:!text}; c.alignment={wrapText:true,vertical:'top',indent:1};
-    this.frame(r,r+lines-1,1,G,XC.lineS,'thin');
+    const c=this.merge(r,1,r+lines-1,G); c.value=text||'';
+    c.font={name:XF.sans,size:10,color:{argb:XC.black}}; c.alignment={wrapText:true,vertical:'top',indent:1};
+    for(let rr=r;rr<=r+lines-1;rr++) for(let cc=1;cc<=G;cc++) this.ws.getCell(rr,cc).fill=xFill(XC.input);
+    this.frame(r,r+lines-1,1,G,XC.black,'medium');
     this.r=r+lines; this.gap(6);
   }
 
@@ -1697,16 +1817,24 @@ function buildXlsxFiche(ws, wb, tabKey){
     L.cardHead('A', XC.gold, 'Points de contrôle');
     L.callout(spec.notes, XC.goldL, XC.gold);
     const rows = madAdvItems.map(i=>[i.label, i.note||'', stateMad.items[i.key]||'']);
-    L.table(['Point de contrôle','Référence','Résultat'], rows, {leftCols:[0,1], pill:i=>i===2, spans:[6,4,2]});
+    L.table(['Point de contrôle','Référence','Résultat'], rows, {leftCols:[0,1], readOnlyCols:[0,1], pill:i=>i===2, spans:[6,4,2]});
     L.fields([['Réf. fiche contrôle fournisseur (moteur)', stateMad.refFournisseur],['État général de l\'appareil', stateMad.etatGeneral]], 2);
   } else if(tabKey==='sc'){
     L.cardHead('A', XC.gold, 'Relevés');
     L.callout(spec.notes, XC.goldL, XC.gold);
     L.strip(spec.strip);
-    const headers=[...scCols.map(c=>c[1]),'Ép. ballast totale (mm)','Compactage'];
-    const rows=stateSC.rows.map(row=>[...scCols.map(c=>row[c[0]]), scEpTotal(row)===null?'':scEpTotal(row), row.compactage]);
+    const headers=[...scCols.map(c=>c[1]),'Ép. ballast totale','Compactage'];
+    // Ép. ballast totale = Niveau SCB avant relevage − Niveau fond de fouille : vraie formule,
+    // pour que le classeur recalcule si un relevé est corrigé dans Excel.
+    const iAvant=scCols.findIndex(c=>c[0]==='niveauAvant'), iFF=scCols.findIndex(c=>c[0]==='niveauFF');
+    const rows=stateSC.rows.map((row,ri)=>[
+      ...scCols.map(c=>row[c[0]]),
+      {_formula:(r)=>`=IF(COUNT(${colLetter(iAvant+1)}${r},${colLetter(iFF+1)}${r})=2,${colLetter(iAvant+1)}${r}-${colLetter(iFF+1)}${r},"")`},
+      row.compactage
+    ]);
     const e1=scCols.findIndex(c=>c[0]==='epSC1'), e2=scCols.findIndex(c=>c[0]==='epSC2');
-    L.table(headers, rows, {idCols:[0,1,2], jadeCols:[9], monoCols:[1,3,4,5,6,7,8,9], pill:i=>i===10,
+    const nf={}; [3,4,5,6,7,8,9].forEach(i=>nf[i]=XNF.mm); nf[1]=XNF.pk;
+    L.table(headers, rows, {calcCols:[9], pill:i=>i===10, numFmt:nf,
       highlight:(i,v,ri)=>{ const row=stateSC.rows[ri]; return (i===e1&&scLayerStatus(row.epSC1)===false)||(i===e2&&scLayerStatus(row.epSC2)===false); }});
   } else {
     L.cardHead('A', XC.gold, 'Relevés');
@@ -1715,7 +1843,8 @@ function buildXlsxFiche(ws, wb, tabKey){
     const headers=piloCols.map(c=>c[1]);
     const rows=statePilo.rows.map(row=>piloCols.map(c=>row[c[0]]));
     const fg=piloCols.findIndex(c=>c[0]==='FG'), fd=piloCols.findIndex(c=>c[0]==='FD'), eq=piloCols.findIndex(c=>c[0]==='equerrage');
-    L.table(headers, rows, {idCols:[0], monoCols:[1,2,3,6], leftCols:[7], spans:[1,1,1,1,1,1,1,5],
+    const nfP={}; [1,2,3,6].forEach(i=>nfP[i]=XNF.mm);
+    L.table(headers, rows, {leftCols:[4,5,7], spans:[1,1,1,1,1,1,1,5], numFmt:nfP,
       highlight:(i,v,ri)=>{ const row=statePilo.rows[ri]; return (i===fg&&piloFieldStatus(row,'FG')===false)||(i===fd&&piloFieldStatus(row,'FD')===false)||(i===eq&&piloFieldStatus(row,'equerrage')===false); }});
   }
 
@@ -1747,8 +1876,7 @@ async function exportXlsx(tabKey, csvFallback){
   buildXlsxFiche(ws, wb, tabKey);
   const buf = await wb.xlsx.writeBuffer();
   const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = filename.replace('.xlsx', `-${docId(tabKey)}.xlsx`); a.click();
+  triggerDownload(blob, filename.replace('.xlsx', `-${docId(tabKey)}.xlsx`));
 }
 
 const decisionState = {}; // tabKey -> {override, signatures:{realise,visa}}
@@ -1766,8 +1894,8 @@ function docId(tabKey){
 }
 
 function anomalyText(n){
-  if(n===0) return el('div',{class:'anomaly-info', html:'✓ Aucune valeur hors tolérance détectée sur les relevés saisis.'});
-  return el('div',{class:'anomaly-info has-anomalies', html:`<strong>${n}</strong> valeur(s) hors tolérance détectée(s) et surlignée(s) ci-dessus — à examiner avant de statuer.`});
+  if(n===0) return el('div',{class:'anomaly-info', html:'✓ Aucune non-conformité détectée sur les relevés saisis.'});
+  return el('div',{class:'anomaly-info has-anomalies', html:`<strong>${n}</strong> ligne(s) non conforme(s) détectée(s) et surlignée(s) ci-dessus — à examiner avant de statuer.`});
 }
 function decisionColor(tabKey){
   const v = decisionState[tabKey] && decisionState[tabKey].override;
@@ -1875,7 +2003,7 @@ function decisionAndSignature(tabKey, anomalyCount, onExport){
   const exportBtn = el('button',{class:'btn btn-primary', html:'Exporter (.xlsx)'});
   exportBtn.addEventListener('click', ()=>exportXlsx(tabKey, onExport));
   const printBtn = el('button',{class:'btn', html:'Imprimer / PDF'});
-  printBtn.addEventListener('click', ()=>{ applyPrintColumns(tabKey); window.print(); });
+  printBtn.addEventListener('click', ()=>{ applyPrintColumns(tabKey); doPrint(); });
   btnRow.appendChild(exportBtn); btnRow.appendChild(printBtn);
   let colsPanel = null;
   if(colVisibility[tabKey]){
@@ -1936,6 +2064,16 @@ const TABS = [
 ];
 let activeTab = 'mad';
 
+/* Retire les écouteurs `resize` posés sur window par les tableaux et pads de signature du rendu
+   précédent : sans cela ils s'accumulent à chaque changement d'onglet et retiennent en mémoire
+   des noeuds détachés du DOM. */
+function detachStaleListeners(root){
+  if(!root) return;
+  root.querySelectorAll('table, canvas').forEach(n=>{
+    if(typeof n._detachResize === 'function'){ n._detachResize(); n._detachResize = null; }
+  });
+}
+
 function renderTabs(){
   const tabsEl = document.getElementById('tabs');
   tabsEl.innerHTML='';
@@ -1970,6 +2108,13 @@ function closeSettings(){ document.getElementById('settingsOverlay').hidden = tr
 document.getElementById('settingsBtn').addEventListener('click', openSettings);
 document.getElementById('settingsClose').addEventListener('click', closeSettings);
 document.getElementById('settingsOverlay').addEventListener('click', e=>{ if(e.target.id==='settingsOverlay') closeSettings(); });
+/* Échap ferme la modale ouverte : au stylet sur tablette, viser le bouton « Annuler » est pénible. */
+document.addEventListener('keydown', e=>{
+  if(e.key!=='Escape') return;
+  if(document.getElementById('pastePreviewOverlay')){ cancelPendingPaste(); return; }
+  const so = document.getElementById('settingsOverlay');
+  if(so && !so.hidden) closeSettings();
+});
 document.getElementById('settingsSave').addEventListener('click', ()=>{
   const min = num(document.getElementById('cfgScMin').value);
   const max = num(document.getElementById('cfgScMax').value);
@@ -2021,8 +2166,19 @@ function restorePrintText(){
     if(el._printSpan){ el._printSpan.remove(); delete el._printSpan; }
   });
 }
-window.addEventListener('beforeprint', preparePrintText);
+window.addEventListener('beforeprint', ()=>{ applyPrintColumns(activeTab); preparePrintText(); });
 window.addEventListener('afterprint', restorePrintText);
+
+/* Safari iOS n'implémente pas beforeprint/afterprint : sans ce déclenchement explicite, le PDF
+   sortirait avec des champs vides sur une tablette de chantier. preparePrintText/restorePrintText
+   sont idempotents (garde sur _printSpan), donc l'appel double sur les navigateurs qui émettent
+   bien les événements est sans effet. */
+function doPrint(){
+  applyPrintColumns(activeTab);
+  preparePrintText();
+  window.print();
+  setTimeout(restorePrintText, 500);
+}
 
 window.addEventListener('beforeunload', e=>{
   if(hasAnyData()){ e.preventDefault(); e.returnValue=''; }
@@ -2036,10 +2192,7 @@ function exportSession(){
     decisionState, colVisibility, docIds
   };
   const blob = new Blob([JSON.stringify(snapshot)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `fcq-session-${new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')}.json`;
-  a.click();
+  triggerDownload(blob, `fcq-session-${new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')}.json`);
 }
 function importSessionFile(file){
   const reader = new FileReader();
