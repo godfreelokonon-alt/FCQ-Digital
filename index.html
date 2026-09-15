@@ -219,6 +219,16 @@
   td input[data-key="repere"], td input[data-key="nr"], td input[data-key="travee"],
   td input[data-key="equerrage"]{min-width:46px;}
   td input.num-cell{font-variant-numeric:tabular-nums;}
+  /* FC-GEO-61 : étiquettes imprimées (non saisissables) et cellules calculées */
+  td.geo-lbl{text-align:center;font-size:11px;color:var(--ink-soft);white-space:nowrap;}
+  td.calc-cell{text-align:center;font-variant-numeric:tabular-nums;font-weight:600;background:var(--warn-bg);}
+  td.calc-cell.cell-oob{background:var(--bad-bg);color:var(--bad);text-decoration:underline;}
+  .fileref-warn{margin-top:6px;font-size:11.5px;font-weight:700;color:var(--bad);}
+  .paste-hint{font-size:11.5px;color:var(--ink-soft);line-height:1.5;margin-bottom:10px;}
+  .sheet-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);}
+  .sheet-count{font-size:11.5px;color:var(--ink-soft);font-weight:600;}
+  tr.sheet-sep td{background:var(--navy-light);color:#fff;font-size:10px;font-weight:700;
+    letter-spacing:1px;text-transform:uppercase;padding:5px 10px;text-align:left;}
   td input.input-oob{border-bottom:2px solid var(--bad) !important;background:var(--bad-bg);color:var(--bad);}
   td input.cell-selected, td select.cell-selected{background:var(--teal-bg) !important;border-bottom-color:var(--teal) !important;}
   .tot-cell{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--teal);font-weight:700;background:var(--teal-bg);}
@@ -865,8 +875,8 @@ function copyToClipboard(text){
 function copySelection(){
   if(!gridSelection.active) return;
   const {tabKey, r1, r2, c1, c2} = gridSelection;
-  const rowsArr = tabKey==='sc' ? stateSC.rows : statePilo.rows;
-  const cols = tabKey==='sc' ? scCols : piloCols;
+  const rowsArr = tabKey==='sc' ? stateSC.rows : tabKey==='geo61' ? stateGeo61.rows : statePilo.rows;
+  const cols = tabKey==='sc' ? scCols : tabKey==='geo61' ? geo61Cols : piloCols;
   const lines = [];
   for(let ri=r1; ri<=r2; ri++){
     const row = rowsArr[ri];
@@ -1862,6 +1872,346 @@ function buildXlsxFiche(ws, wb, tabKey){
   xlsxPageSetup(ws, docId(tabKey), spec.landscape, singlePage);
 }
 
+
+/* ==========================================================
+   FC-GEO-61 — Contrôle du gauche sur le RER
+   Transposition fidèle de la fiche Excel RATP (onglets « Gauche »).
+   Métier :
+     · 27 points de relevé par feuille, espacés de 3 m, étiquetés A..Z puis £, suffixés du n° de feuille
+     · Gauche sur 3 m  = |D(n) − D(n−1)|   (points consécutifs, soit 3 m)
+     · Gauche sur 18 m = |D(n) − D(n−6)|   (6 intervalles de 3 m)
+     · le résultat est toujours positif — d'où la valeur absolue (note 3 de la fiche)
+     · aucun calcul tant que la file de référence n'est pas choisie (garde S11 de la fiche)
+   ========================================================== */
+const GEO61_PTS = 27;
+const GEO61_LETTERS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','£'];
+const GEO61_NOTES = [
+  "Afin d'éviter toute confusion avec les files intérieure et extérieure, Il est préconisé de faire le relevé face au train",
+  "Pour le dévers utiliser le signe + si la file de référence est plus basse",
+  "Le résultat de l'opération de deux dévers est toujours en positif"
+];
+function geo61NewRow(){ return {id:uid(), pk:'', ecartement:'', devers:''}; }
+/* Colonnes saisissables, dans l'ordre d'affichage — support du collage depuis Excel.
+   Les étiquettes de points et les colonnes calculées en sont exclues : elles ne se collent pas. */
+const geo61Cols = [['pk','PK','text'],['ecartement','Écartement (mm)','number'],['devers','Dévers D','number']];
+/* Après un collage, la dernière feuille doit rester complète (27 points) : la fiche papier
+   est paginée, une feuille tronquée n'existe pas. */
+function geo61PadToSheets(){
+  while(stateGeo61.rows.length % GEO61_PTS !== 0) stateGeo61.rows.push(geo61NewRow());
+}
+const stateGeo61 = {
+  header:{go:'', ligne:'', voie:'', interstation:'', pkOrigine:'', pkFin:'', numRegle:'', releve:''},
+  fileRef:'',            // 'ext' | 'int' — conditionne tous les calculs
+  // La fiche papier ne fixe aucune tolérance sur le gauche : elle calcule, le signataire statue.
+  // Ces seuils restent donc vides par défaut ; renseignés, ils activent le surlignage.
+  tol3:null, tol18:null,
+  rows: Array.from({length:GEO61_PTS}, geo61NewRow),
+  observations:''
+};
+
+/* ---------- Découpage en feuilles ----------
+   La fiche papier est paginée par blocs de 27 points. Chaque feuille est autonome : la
+   fiche source redémarre ses étiquettes (A1..£1, puis A2..£2) et ses formules ne
+   référencent jamais la feuille précédente. On reproduit ce cloisonnement. */
+function geo61SheetCount(){ return Math.max(1, Math.ceil(stateGeo61.rows.length / GEO61_PTS)); }
+function geo61SheetOf(i){ return Math.floor(i / GEO61_PTS); }          // 0-based
+function geo61SameSheet(i,j){ return geo61SheetOf(i)===geo61SheetOf(j); }
+function geo61AddSheet(){ for(let k=0;k<GEO61_PTS;k++) stateGeo61.rows.push(geo61NewRow()); }
+function geo61RemoveLastSheet(){
+  if(geo61SheetCount()<=1) return;
+  stateGeo61.rows.splice((geo61SheetCount()-1)*GEO61_PTS);
+}
+
+/* Étiquette d'un point : lettre de rang dans la feuille + numéro de feuille (« A1= », « B2= »). */
+function geo61Label(i){ return GEO61_LETTERS[i % GEO61_PTS] + (geo61SheetOf(i)+1); }
+/* Étiquettes des colonnes calculées. Vides si l'opération franchirait une feuille. */
+function geo61Lbl3(i){ return (i<1 || !geo61SameSheet(i,i-1)) ? '' : `${geo61Label(i-1)}-${geo61Label(i)}=`; }
+function geo61Lbl18(i){ return (i<6 || !geo61SameSheet(i,i-6)) ? '' : `${geo61Label(i-6)}-${geo61Label(i)}=`; }
+
+/* Gauche = écart entre deux dévers, toujours positif (note 3). null si incalculable. */
+function geo61Gauche(i, span){
+  if(!stateGeo61.fileRef) return null;   // garde : file de référence non choisie
+  if(i < span || !geo61SameSheet(i, i-span)) return null;
+  const a = num(stateGeo61.rows[i].devers), b = num(stateGeo61.rows[i-span].devers);
+  if(a===null || b===null) return null;
+  return Math.round(Math.abs(a-b)*1000)/1000;
+}
+function geo61Status(i, span){
+  const v = geo61Gauche(i, span);
+  if(v===null) return null;
+  const lim = span===1 ? stateGeo61.tol3 : stateGeo61.tol18;
+  return lim ? v <= lim : null;
+}
+function countAnomaliesGeo61(){
+  let n=0;
+  for(let i=0;i<stateGeo61.rows.length;i++){
+    if(geo61Status(i,1)===false || geo61Status(i,6)===false) n++;
+  }
+  return n;
+}
+
+/* ---------- Chaînage des PK ----------
+   Les relevés sont espacés de 3 m : saisir le PK d'une ligne suffit à déduire les suivantes.
+   Deux notations coexistent sur le terrain, on préserve celle que l'opérateur a employée :
+     · kilométrique « 283.298 » ou « 283+298 » → km et mètres séparés, retenue à 1000 m
+     · métrique « 34341 » → simple addition
+   Un PK non reconnu (texte libre, « ZEP 4 ») n'est pas chaîné : on ne réécrit jamais une
+   saisie qu'on ne sait pas interpréter. */
+function parsePK(s){
+  const t = String(s==null?'':s).trim().replace(/\s/g,'');
+  if(t==='') return null;
+  let m = t.match(/^(\d+)([.,+])(\d{1,3})$/);
+  if(m){
+    const dec = m[3];
+    return {kind:'km', sep:m[2], pad:dec.length, metres: parseInt(m[1],10)*1000 + parseInt(dec.padEnd(3,'0'),10)};
+  }
+  m = t.match(/^\d+$/);
+  if(m) return {kind:'m', metres: parseInt(t,10)};
+  return null;
+}
+function formatPK(model, metres){
+  if(model.kind==='m') return String(metres);
+  const km = Math.floor(metres/1000), rest = metres%1000;
+  return `${km}${model.sep}${String(rest).padStart(3,'0').slice(0,Math.max(model.pad,3))}`;
+}
+/* Remplit les PK à partir de la ligne `from`, par pas de 3 m, jusqu'au bout de la saisie. */
+function geo61ChainPK(from){
+  const model = parsePK(stateGeo61.rows[from].pk);
+  if(!model) return false;
+  for(let i=from+1; i<stateGeo61.rows.length; i++){
+    stateGeo61.rows[i].pk = formatPK(model, model.metres + 3*(i-from));
+  }
+  return true;
+}
+
+/* ==========================================================
+   Export FC-GEO-61 — réplique de la fiche Excel RATP
+   Géométrie relevée sur le fichier source :
+     30 colonnes A..AD · zone d'impression A1:AD55 · A4 portrait · fitToWidth/Height = 1
+     en-tête de tableau fusionné sur 5 lignes (15→19) · 27 lignes de relevé (20→46)
+     8 blocs de colonnes fusionnés par ligne, largeurs identiques à l'original
+     colonnes d'aide AE/AF en police blanche (comme la fiche : calculs masqués à la lecture)
+   ========================================================== */
+const G61 = {
+  // Gabarit relevé cellule par cellule sur la fiche RATP « Gauche ».
+  // 8 blocs fusionnés par ligne de relevé, avec leurs bordures propres :
+  //   m = medium · t = thin · d = dashed  (ordre : haut, bas, gauche, droite)
+  blocks: [
+    {c1:1,  c2:3,  bd:'mtmm', align:'center'},                    // PK
+    {c1:4,  c2:8,  bd:'mtmm', align:'center'},                    // Écartement
+    {c1:9,  c2:10, bd:'mt  ', align:null},                        // étiquette du point
+    {c1:11, c2:14, bd:'mtmm', align:'center'},                    // Dévers D
+    {c1:15, c2:18, bd:'tt  ', align:null,     fill:'calc'},       // opération 3 m
+    {c1:19, c2:22, bd:'tt m', align:'center', fill:'calc'},       // Gauche 3 m
+    {c1:23, c2:26, bd:'dt  ', align:null,     fill:'calc'},       // opération 18 m
+    {c1:27, c2:30, bd:'dt m', align:'center', fill:'calc'}        // Gauche 18 m
+  ],
+  firstRow: 20,
+  // Largeurs par PLAGE, telles que déclarées dans le <cols> de la fiche source.
+  // openpyxl ne restitue que la 1re colonne de chaque plage : s'y fier laissait B, C, G→J,
+  // M, T→V et X→AD à la largeur par défaut (11,42), d'où un tableau démesuré.
+  widthRanges: [[1,3,3.28],[4,4,2.84],[5,5,3.28],[6,10,2.84],[11,11,4.14],[12,13,2.99],
+                [14,14,3.7],[15,15,3.28],[16,16,3.7],[17,17,4.85],[18,18,3.28],
+                [19,22,3.7],[23,30,3.28],[31,32,11.43]],
+  defaultWidth: 11.42, defaultRowHeight: 12.75
+};
+const G61_STYLE = {m:'medium', t:'thin', d:'dashed', ' ':null};
+
+/* Applique un jeu de bordures « haut/bas/gauche/droite » à une plage horizontale.
+   Attention : dans ExcelJS, écrire sur une cellule interne à une fusion est redirigé vers la
+   cellule maître. Boucler sur la plage écraserait donc la bordure gauche par la droite —
+   on compose les quatre côtés en une seule affectation sur la maître. */
+function g61Borders(ws, r, c1, c2, bd){
+  const [t,b,l,rt] = bd.split('');
+  const e={};
+  if(G61_STYLE[t])  e.top    = {style:G61_STYLE[t],  color:{argb:XC.black}};
+  if(G61_STYLE[b])  e.bottom = {style:G61_STYLE[b],  color:{argb:XC.black}};
+  if(G61_STYLE[l])  e.left   = {style:G61_STYLE[l],  color:{argb:XC.black}};
+  if(G61_STYLE[rt]) e.right  = {style:G61_STYLE[rt], color:{argb:XC.black}};
+  ws.getCell(r,c1).border = e;
+}
+
+function buildGeo61Sheet(ws, wb, sheetIdx){
+  const h=stateGeo61.header;
+  const base = sheetIdx*GEO61_PTS;
+  const sheetRows = stateGeo61.rows.slice(base, base+GEO61_PTS);
+
+  ws.properties.defaultColWidth = G61.defaultWidth;
+  ws.properties.defaultRowHeight = G61.defaultRowHeight;
+  G61.widthRanges.forEach(([c1,c2,w])=>{ for(let c=c1;c<=c2;c++) ws.getColumn(c).width=w; });
+  ws.views=[{showGridLines:true}];   // la fiche source laisse le quadrillage visible à l'écran
+
+  /* Pose une cellule (fusionnée ou non) avec police, alignement, fond, bordures. */
+  const put=(r,c1,c2,value,o={})=>{
+    if(c1!==c2) ws.mergeCells(r,c1,r,c2);
+    const cell=ws.getCell(r,c1);
+    if(value!==undefined && value!==null) cell.value=value;
+    cell.font={name:XF.sans,size:o.size||10,bold:!!o.bold,color:{argb:o.color||XC.black}};
+    const al={vertical:o.v||'center',wrapText:!!o.wrap};
+    if(o.h) al.horizontal=o.h;      // sans h : alignement « standard », comme la fiche source
+    cell.alignment=al;
+    if(o.numFmt) cell.numFmt=o.numFmt;
+    if(o.fill) for(let c=c1;c<=c2;c++) ws.getCell(r,c).fill=xFill(o.fill);
+    if(o.bd) g61Borders(ws,r,c1,c2,o.bd);
+    // la validation couvre toute la plage fusionnée (la fiche source cible D5:F5, pas D5)
+    if(o.dv) ws.dataValidations.add(c1===c2 ? cell.address : `${cell.address}:${colLetter(c2)}${r}`, o.dv);
+    return cell;
+  };
+  const listDV = ref => ({type:'list', allowBlank:true, formulae:[ref]});
+
+  /* ---------- Cartouche ---------- */
+  put(1,30,30,'FICHE DE CONTRÔLE N° FC - GEO - 61',{h:'right'});
+  put(2,1,1,'RER',{bold:true});
+  put(3,1,30,'CONTRÔLE DU GAUCHE SUR LE RER',{bold:true,size:14,h:'center'});
+  put(4,1,6,`Feuille numéro ${sheetIdx+1}`,{h:'center',bd:'mmmm'});
+
+  put(5,1,3,'G. O.',{h:'center',v:'bottom',bd:'mmmm'});
+  put(5,4,6,h.go,{h:'center',v:'bottom',bd:'mmmm',fill:XC.input,dv:listDV('$AE$4:$AE$7')});
+  put(5,9,12,'Interstation',{h:'center',bd:'mmmm'});
+  put(5,13,18,h.interstation,{h:'center',bd:'mmmm'});
+
+  put(6,1,3,'Ligne ',{h:'center',v:'bottom',bd:'mmmm'});
+  put(6,4,6,h.ligne,{h:'center',v:'bottom',bd:'mmmm',fill:XC.input,dv:listDV('$AF$4:$AF$7')});
+  put(6,11,13,'PK origine',{h:'center',bd:'mmmm'});
+  put(6,14,17,h.pkOrigine,{h:'center',bd:'mmmm'});
+
+  put(7,1,3,'VOIE N°',{h:'center',v:'bottom',bd:'mmmm'});
+  put(7,4,6,h.voie,{h:'center',v:'bottom',bd:'mmmm'});     // sans fond dans la fiche source
+  put(7,11,13,'PK fin',{h:'center',bd:'mmmm'});
+  put(7,14,17,h.pkFin,{h:'center',bd:'mmmm'});
+
+  /* ---------- File de référence : deux cases à cocher ---------- */
+  // bordure droite seule : le trait ferme la phrase juste avant la case à cocher
+  put(9,1,17,'Si la file de référence FR est la file extérieure, cocher la case  ',{h:'right',bd:'   m'});
+  put(9,18,18,stateGeo61.fileRef==='ext'?'X':'',{h:'center',bold:true,bd:'mmmm'});
+  put(9,21,26,'Numéro de la règle',{h:'center',bd:'mmmm'});
+  put(9,27,29,h.numRegle,{h:'center',v:'bottom',bd:'mmmm'});
+
+  put(10,1,17,'Si la file de référence FR est la file intérieure, cocher la case  ',{h:'right',bd:'   m'});
+  put(10,18,18,stateGeo61.fileRef==='int'?'X':'',{h:'center',bold:true,bd:'mmmm'});
+  put(10,21,26,'Relevé avant bourrage',{h:'center',bd:'mmmm'});
+  put(10,27,28,h.releve==='Avant bourrage'?'Oui':'',{h:'center',bd:'mmmm',fill:XC.input});
+
+  put(11,10,18,{formula:'IF(S11=1,"","Choisissez une file de reference")'},{h:'right',v:'bottom',bold:true,color:'FFFF0000'});
+  put(11,21,26,'Relevé après bourrage',{h:'center',bd:'mmmm'});
+  put(11,27,28,h.releve==='Après bourrage'?'Oui':'',{h:'center',bd:'mmmm',fill:XC.input});
+  // plages exactes de la fiche source pour la liste « Oui »
+  ws.dataValidations.add('AA10:AA11', listDV('$AE$10'));
+  ws.dataValidations.add('AB11', listDV('$AE$10'));
+
+  /* ---------- Notes ---------- */
+  put(12,1,30,GEO61_NOTES[0],{bold:true,h:'center',v:'bottom',bd:'dddd'});
+  put(13,1,1,'(2) '+GEO61_NOTES[1],{h:'left',v:'bottom'});
+  put(14,1,1,'(3) '+GEO61_NOTES[2],{h:'left',v:'bottom'});
+
+  /* ---------- En-tête du tableau, fusionné sur 5 lignes ---------- */
+  [[1,3,'P K\ntous les\n3 mètres'],
+   [4,8,'ÉCARTEMENT\n\nmesuré\n\n(mm)'],
+   [9,14,'DEVERS\nStatique\nmesuré à la règle (2)\nD'],
+   [15,22,'GAUCHE\nSUR\n\n3 M  (3)'],
+   [23,30,'GAUCHE\nSUR\n\n18 M  (3)']].forEach(([c1,c2,txt])=>{
+    ws.mergeCells(15,c1,19,c2);
+    const cell=ws.getCell(15,c1);
+    cell.value=txt;
+    cell.font={name:XF.sans,size:10,bold:true,color:{argb:XC.black}};
+    cell.alignment={horizontal:'center',vertical:'center',wrapText:true};
+    const M={style:'medium',color:{argb:XC.black}};
+    // une seule affectation par plage fusionnée, pour la même raison qu'au-dessus
+    ws.getCell(15,c1).border={top:M,bottom:M,left:M,right:M};
+  });
+
+  /* ---------- 27 lignes de relevé ---------- */
+  const R0=G61.firstRow;
+  const dCol=colLetter(G61.blocks[3].c1);
+  sheetRows.forEach((row,i)=>{
+    const gi=base+i, r=R0+i;
+    const vals=[
+      row.pk,
+      num(row.ecartement)!==null?num(row.ecartement):row.ecartement,
+      geo61Label(gi)+'=',
+      num(row.devers)!==null?num(row.devers):row.devers,
+      geo61Lbl3(gi),
+      (i>=1)?{formula:`IF($S$11=1,IF(OR(COUNTBLANK(${dCol}${r})=1,COUNTBLANK(${dCol}${r-1})=1)," ",ABS(${dCol}${r}-${dCol}${r-1}))," ")`}:null,
+      geo61Lbl18(gi),
+      (i>=6)?{formula:`IF($S$11=1,IF(OR(COUNTBLANK(${dCol}${r})=1,COUNTBLANK(${dCol}${r-6})=1)," ",ABS(${dCol}${r}-${dCol}${r-6}))," ")`}:null
+    ];
+    G61.blocks.forEach((b,bi)=>{
+      put(r,b.c1,b.c2, vals[bi]===null?undefined:vals[bi],
+          {h:b.align, bd:b.bd, fill: b.fill==='calc'?XC.calc:undefined});
+    });
+    ws.getRow(r).height = (i===0 ? 15 : 16.5);   // la 1re ligne de relevé est plus courte
+  });
+
+  /* ---------- Zone d'aide : police blanche, invisible à la lecture ---------- */
+  const white={name:XF.sans,size:10,color:{argb:XC.white}};
+  const hid=(addr,val,fmt)=>{ const c=ws.getCell(addr); c.value=val; c.font=white; if(fmt) c.numFmt=fmt; };
+  hid('AE5','Ligne A'); hid('AF5','A');
+  hid('AE6','Ligne B'); hid('AF6','B');
+  hid('AE7','Ligne D'); hid('AF7','D');
+  hid('AE9','Oui');     hid('AE10','Oui');
+  hid('S9',{formula:'COUNTBLANK(R9)'});
+  hid('S10',{formula:'COUNTBLANK(R10)'});
+  hid('S11',{formula:'SUM(S9:S10)'});
+  ws.getCell('S11').alignment={horizontal:'center',vertical:'bottom'};
+  // R9/R10 portent la coche : les formules d'aide en dépendent
+  ws.getCell('R9').value  = stateGeo61.fileRef==='ext'?'X':null;
+  ws.getCell('R10').value = stateGeo61.fileRef==='int'?'X':null;
+  for(let i=0;i<sheetRows.length;i++){
+    const r=R0+i;
+    hid(`AE${r}`,{formula:`COUNTBLANK(${dCol}${r})`});
+  }
+  hid(`AF47`,{formula:`SUM(AE${R0}:AE${R0+sheetRows.length-1})`});
+  hid('AF49',{formula:'TODAY()'},'[$-409]m/d/yyyy');
+
+  /* ---------- Pied ---------- */
+  const DATEFMT='[$-40C]d\\ mmmm\\ yyyy;@';
+  put(48,1,2,'Fait le :',{h:'right'});
+  put(48,3,9,signerDate('geo61','realise'),{numFmt:DATEFMT,bd:' d d',fill:XC.input,dv:listDV('$AF$48:$AF$49')});
+  put(48,10,12,'Vérifié le :',{h:'right',bd:'  d '});
+  put(48,13,17,signerDate('geo61','visa'),{numFmt:DATEFMT,bd:' d d',fill:XC.input,dv:listDV('$AF$48:$AF$49')});
+  put(48,18,20,'Commentaire:',{bd:'  d '});
+  put(48,21,30,stateGeo61.observations,{bd:' d  '});
+  put(49,1,1,'Par :');
+  put(49,3,9,signerName('geo61','realise'),{bd:'dd d'});
+  put(49,10,11,'Par :',{h:'right',bd:'  d '});
+  put(49,12,17,signerName('geo61','visa'),{bd:' d d'});
+  put(49,18,30,'',{bd:' dd '});
+  put(50,1,1,'Signature');
+  put(50,10,12,'Signature');
+  put(50,18,30,'',{bd:'ddd '});
+  put(51,18,30,'',{bd:'ddd '});
+
+  /* Traits verticaux isolés présents sur l'original (séparateurs de zones). */
+  g61Borders(ws,5,19,19,'  m ');
+  g61Borders(ws,14,20,20,' m  ');
+  g61Borders(ws,14,21,21,' m  ');
+  g61Borders(ws,50,9,9,'   d');
+  g61Borders(ws,51,9,9,'   d');
+
+  /* ---------- Hauteurs de lignes, relevées sur l'original ---------- */
+  const H={1:12.8,2:12.8,3:18,4:13.5,5:13.5,6:13.5,7:13.5,8:6,9:13.5,10:13.5,11:13.5,
+           12:12.8,13:13.5,14:13.5,15:12.8,16:12.8,17:12.8,18:12.8,19:13.5,
+           47:6,48:12.8,49:12.8,50:12.8,51:12.8};
+  Object.entries(H).forEach(([r,v])=>{ ws.getRow(Number(r)).height=v; });
+
+  // printArea appartient à pageSetup dans ExcelJS ; posé sur la feuille il est ignoré.
+  ws.pageSetup={ paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:1,
+    printArea:'A1:AD55',
+    margins:{left:0.1965,right:0.1965,top:0.1965,bottom:0.1965,header:0,footer:0} };
+}
+/* Date de signature, au format date si elle est renseignée. */
+function signerDate(tabKey, which){
+  const d=ensureDecisionState(tabKey);
+  const v=(d.signatures[which]&&d.signatures[which].date)||'';
+  return v ? new Date(v) : '';
+}
+
+/* Nom du signataire, pour le pied de fiche. */
+function signerName(tabKey, which){
+  const d=ensureDecisionState(tabKey);
+  return (d.signatures[which] && d.signatures[which].name) || '';
+}
+
 async function exportXlsx(tabKey, csvFallback){
   if(typeof ExcelJS === 'undefined'){
     // Pas de réseau pour charger la librairie (cas fréquent sur chantier) : repli automatique en CSV.
@@ -1870,10 +2220,26 @@ async function exportXlsx(tabKey, csvFallback){
   }
   const wb = new ExcelJS.Workbook();
   wb.creator = 'FCQ Digital'; wb.created = new Date();
-  const names = {mad:['FC-MAD-ADV','FC-MAD-ADV.xlsx'], sc:['FC-Sous-couche','FC-SOUS-COUCHE.xlsx'], pilo:['FC-Pilotis','FC-PILOTIS.xlsx']};
+  const names = {mad:['FC-MAD-ADV','FC-MAD-ADV.xlsx'], sc:['FC-Sous-couche','FC-SOUS-COUCHE.xlsx'], pilo:['FC-Pilotis','FC-PILOTIS.xlsx'], geo61:['Gauche','FC-GEO-61.xlsx']};
   const [sheet, filename] = names[tabKey] || names.sc;
-  const ws = wb.addWorksheet(sheet);
-  buildXlsxFiche(ws, wb, tabKey);
+  // FC-GEO-61 a sa propre géométrie (réplique de la fiche RATP) et se pagine en autant
+  // d'onglets « Gauche », « Gauche (2) »… que de feuilles de 27 points, comme le fichier source.
+  if(tabKey==='geo61'){
+    // Garde de la fiche : sans file de référence, S11 vaut 2 et TOUTES les formules de gauche
+    // renvoient un espace. Le classeur est correct mais paraît vide — on prévient avant.
+    if(!stateGeo61.fileRef && !confirm(
+      "Aucune file de référence (FR) n'est choisie.\n\n"+
+      "Les colonnes Gauche 3 m et 18 m resteront vides dans le classeur : leurs formules sont "+
+      "conditionnées à ce choix, comme sur la fiche papier. Vous pourrez aussi cocher la case "+
+      "directement dans Excel pour lancer le calcul.\n\nExporter quand même ?")) return;
+    const n = geo61SheetCount();
+    for(let k=0;k<n;k++){
+      const name = k===0 ? 'Gauche' : `Gauche (${k+1})`;
+      buildGeo61Sheet(wb.addWorksheet(name), wb, k);
+    }
+  } else {
+    buildXlsxFiche(wb.addWorksheet(sheet), wb, tabKey);
+  }
   const buf = await wb.xlsx.writeBuffer();
   const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   triggerDownload(blob, filename.replace('.xlsx', `-${docId(tabKey)}.xlsx`));
@@ -1881,7 +2247,7 @@ async function exportXlsx(tabKey, csvFallback){
 
 const decisionState = {}; // tabKey -> {override, signatures:{realise,visa}}
 const docIds = {};
-const DOC_REFS = {mad:'FC-MAD-ADV', sc:'FC-BALL', pilo:'FC-PILO14'};
+const DOC_REFS = {mad:'FC-MAD-ADV', sc:'FC-BALL', pilo:'FC-PILO14', geo61:'FC-GEO-61'};
 function docId(tabKey){
   if(!docIds[tabKey]){
     const d = new Date();
@@ -1917,7 +2283,7 @@ function refreshPrintDecision(tabKey){
   const pd = document.getElementById(`print-decision-${tabKey}`);
   if(pd) pd.innerHTML = `Décision : <strong style="color:${decisionColor(tabKey)}">${decisionLabel(tabKey)}</strong>`;
 }
-function stateFor(tabKey){ return tabKey==='mad' ? stateMad : tabKey==='sc' ? stateSC : statePilo; }
+function stateFor(tabKey){ return tabKey==='mad' ? stateMad : tabKey==='sc' ? stateSC : tabKey==='geo61' ? stateGeo61 : statePilo; }
 
 function signatureCard(tabKey, slotKey, title){
   const d = ensureDecisionState(tabKey);
@@ -2057,10 +2423,188 @@ function buildColsPanel(tabKey){
 /* ==========================================================
    Tab navigation
    ========================================================== */
+
+function renderGeo61(container){
+  detachStaleListeners(container);
+  container.innerHTML='';
+  const h = stateGeo61.header;
+
+  /* Identification */
+  const p1 = el('div',{class:'panel'});
+  p1.appendChild(el('h2',{html:'Identification'}));
+  const grid = el('div',{class:'field-grid'});
+  [['go','G. O.'],['ligne','Ligne'],['voie','Voie n°'],['interstation','Interstation'],
+   ['pkOrigine','PK origine'],['pkFin','PK fin'],['numRegle','Numéro de la règle']].forEach(([k,label])=>{
+    const w = el('div');
+    w.appendChild(el('label',{html:label}));
+    const inp = el('input',{type:'text', value:h[k]});
+    inp.addEventListener('input', e=>{ h[k]=e.target.value; });
+    w.appendChild(inp);
+    grid.appendChild(w);
+  });
+  p1.appendChild(grid);
+
+  const rw = el('div',{style:'margin-top:12px'});
+  rw.appendChild(el('label',{html:'Relevé'}));
+  rw.appendChild(pillToggle(['Avant bourrage','Après bourrage'], h.releve, v=>{ h.releve=v; }));
+  p1.appendChild(rw);
+
+  /* File de référence — garde de calcul, exactement comme la fiche (S11) */
+  const fr = el('div',{style:'margin-top:12px'});
+  fr.appendChild(el('label',{html:'File de référence (FR)'}));
+  const cur = stateGeo61.fileRef==='ext'?'Extérieure':stateGeo61.fileRef==='int'?'Intérieure':'';
+  fr.appendChild(pillToggle(['Extérieure','Intérieure'], cur, v=>{
+    stateGeo61.fileRef = v==='Extérieure'?'ext':v==='Intérieure'?'int':'';
+    renderGeo61(container); // les colonnes calculées s'activent ou se vident en bloc
+  }));
+  if(!stateGeo61.fileRef) fr.appendChild(el('div',{class:'fileref-warn', html:'Choisissez une file de référence'}));
+  p1.appendChild(fr);
+
+  /* Feuilles : la fiche est paginée par blocs de 27 points. */
+  const sh = el('div',{class:'sheet-bar'});
+  sh.appendChild(el('span',{class:'sheet-count', html:`${geo61SheetCount()} feuille(s) — ${stateGeo61.rows.length} points`}));
+  const addSh = el('button',{class:'btn', html:'+ Ajouter une feuille'});
+  addSh.addEventListener('click', ()=>{ geo61AddSheet(); renderGeo61(container); });
+  sh.appendChild(addSh);
+  if(geo61SheetCount()>1){
+    const delSh = el('button',{class:'btn', html:'− Retirer la dernière'});
+    delSh.addEventListener('click', ()=>{
+      const last = stateGeo61.rows.slice((geo61SheetCount()-1)*GEO61_PTS);
+      const filled = last.some(r=>r.pk||r.ecartement||r.devers);
+      if(filled && !confirm('La dernière feuille contient des relevés. La retirer ?')) return;
+      geo61RemoveLastSheet(); renderGeo61(container);
+    });
+    sh.appendChild(delSh);
+  }
+  p1.appendChild(sh);
+  container.appendChild(p1);
+
+  /* Relevés */
+  const p2 = el('div',{class:'panel'});
+  p2.appendChild(el('h2',{html:'<span class="badge badge-gold">A</span>Relevés'}));
+  p2.appendChild(notesCallout(GEO61_NOTES));
+  p2.appendChild(el('div',{class:'paste-hint',
+    html:'Astuce : sélectionnez un bloc de cellules dans Excel et collez-le (Ctrl+V) dans une cellule du tableau — un aperçu permet de vérifier l\'alignement des colonnes avant validation. Saisir un PK puis quitter le champ chaîne les suivants de 3 m en 3 m.'}));
+
+  const table = el('table');
+  const thead = el('thead'); const trh = el('tr');
+  ['P K<br><small>tous les 3 m</small>',
+   'Écartement<br><small>mesuré (mm)</small>',
+   'Point',
+   'Dévers D<br><small>statique, à la règle (2)</small>',
+   'Opération',
+   'Gauche sur<br>3 m (3)',
+   'Opération',
+   'Gauche sur<br>18 m (3)'].forEach(lab=>trh.appendChild(el('th',{html:lab})));
+  thead.appendChild(trh); table.appendChild(thead);
+
+  const tbody = el('tbody');
+  stateGeo61.rows.forEach((r,i)=>{
+    // Séparateur en tête de chaque feuille : la pagination est une réalité de la fiche,
+    // pas un détail d'export (les calculs ne franchissent jamais cette limite).
+    if(i % GEO61_PTS === 0){
+      const sep = el('tr',{class:'sheet-sep'});
+      sep.appendChild(el('td',{colspan:'8', html:`Feuille numéro ${geo61SheetOf(i)+1}`}));
+      tbody.appendChild(sep);
+    }
+    const tr = el('tr');
+    // PK : la saisie d'une ligne chaîne les suivantes de 3 m en 3 m
+    const tdPk = el('td');
+    const inpPk = el('input',{type:'text', value:r.pk, placeholder:i===0?'Ex. : 283.298':''});
+    inpPk.dataset.key='pk';
+    wireCell(inpPk, 'geo61', i, 0);
+    geo61WirePaste(inpPk, 0, container);
+    inpPk.addEventListener('input', e=>{ r.pk = e.target.value; });
+    inpPk.addEventListener('change', e=>{
+      r.pk = e.target.value;
+      if(geo61ChainPK(i)) refreshGeo61PK(tbody);
+    });
+    tdPk.appendChild(inpPk); tr.appendChild(tdPk);
+    const tdEc = el('td');
+    const inpEc = el('input',{type:'text', value:r.ecartement});
+    inpEc.setAttribute('inputmode','decimal'); inpEc.classList.add('num-cell');
+    inpEc.dataset.key='ecartement';
+    wireCell(inpEc, 'geo61', i, 1);
+    geo61WirePaste(inpEc, 1, container);
+    inpEc.addEventListener('input', e=>{ r.ecartement=e.target.value; });
+    tdEc.appendChild(inpEc); tr.appendChild(tdEc);
+    tr.appendChild(el('td',{class:'geo-lbl pt-lbl', html: geo61Label(i)+'='}));
+    const tdD = el('td');
+    const inpD = el('input',{type:'text', value:r.devers});
+    inpD.setAttribute('inputmode','decimal'); inpD.classList.add('num-cell');
+    inpD.dataset.key='devers';
+    wireCell(inpD, 'geo61', i, 2);
+    geo61WirePaste(inpD, 2, container);
+    inpD.addEventListener('input', e=>{ r.devers=e.target.value; refreshGeo61Calc(tbody); });
+    tdD.appendChild(inpD); tr.appendChild(tdD);
+    tr.appendChild(el('td',{class:'geo-lbl op3', html: geo61Lbl3(i)}));
+    tr.appendChild(el('td',{class:'calc-cell g3'}));
+    tr.appendChild(el('td',{class:'geo-lbl op18', html: geo61Lbl18(i)}));
+    tr.appendChild(el('td',{class:'calc-cell g18'}));
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  p2.appendChild(wrapTable(table, 1));
+  container.appendChild(p2);
+  refreshGeo61Calc(tbody);
+
+  container.appendChild(decisionAndSignature('geo61', countAnomaliesGeo61(), exportGeo61));
+}
+
+/* Recalcule les deux colonnes de gauche sans reconstruire le tableau. */
+function refreshGeo61Calc(tbody){
+  [...tbody.querySelectorAll('tr:not(.sheet-sep)')].forEach((tr,i)=>{
+    const set=(sel,span)=>{
+      const cell=tr.querySelector(sel); if(!cell) return;
+      const v=geo61Gauche(i,span);
+      cell.textContent = v===null ? '' : fmtNum(v);
+      cell.classList.toggle('cell-oob', geo61Status(i,span)===false);
+    };
+    set('.g3',1); set('.g18',6);
+  });
+  updateDecisionInfo('geo61', countAnomaliesGeo61());
+}
+/* Collage Excel : réutilise l'aperçu commun. Le rendu final complète la dernière feuille
+   pour qu'elle garde ses 27 points, et rechaîne les PK si la 1re ligne collée en contient un. */
+function geo61WirePaste(inp, colIdx, container){
+  inp.addEventListener('paste', e=>{
+    const rowIdx = +inp.dataset.row;
+    handleTablePaste(e, stateGeo61.rows, geo61Cols, geo61NewRow, rowIdx, colIdx, ()=>{
+      geo61PadToSheets();
+      renderGeo61(container);
+    });
+  });
+}
+
+/* Recopie les PK chaînés dans les champs, sans reconstruire le tableau. */
+function refreshGeo61PK(tbody){
+  [...tbody.querySelectorAll('tr:not(.sheet-sep)')].forEach((tr,i)=>{
+    const inp = tr.querySelector('input[data-key="pk"]');
+    if(inp && inp !== document.activeElement) inp.value = stateGeo61.rows[i].pk;
+  });
+}
+/* Repli CSV si ExcelJS n'a pas pu être chargé (chantier sans réseau). */
+function exportGeo61(){
+  const rows=[['Champ','Valeur']];
+  Object.entries(stateGeo61.header).forEach(([k,v])=>rows.push([k,v]));
+  rows.push(['File de référence', stateGeo61.fileRef==='ext'?'Extérieure':stateGeo61.fileRef==='int'?'Intérieure':'']);
+  rows.push([]);
+  rows.push(['Feuille','PK','Écartement (mm)','Point','Dévers D','Opération 3 m','Gauche 3 m','Opération 18 m','Gauche 18 m']);
+  stateGeo61.rows.forEach((r,i)=>{
+    const g3=geo61Gauche(i,1), g18=geo61Gauche(i,6);
+    rows.push([geo61SheetOf(i)+1, r.pk, r.ecartement, geo61Label(i)+'=', r.devers, geo61Lbl3(i), g3===null?'':g3, geo61Lbl18(i), g18===null?'':g18]);
+  });
+  rows.push([]); rows.push(['Observations', stateGeo61.observations]);
+  rows.push(['Décision (signataire)', decisionLabel('geo61')]);
+  rows.push(...signerRows('geo61'));
+  downloadCSV('FC-GEO-61.csv', rows);
+}
+
 const TABS = [
   {key:'mad', label:'FC-MAD-ADV', render:renderMad},
   {key:'sc', label:'FC Sous-couche', render:renderSC},
   {key:'pilo', label:'FC-14 Pilotis', render:renderPilo},
+  {key:'geo61', label:'FC-GEO-61 Gauche', render:renderGeo61},
 ];
 let activeTab = 'mad';
 
@@ -2133,6 +2677,8 @@ function hasAnyData(){
   const rowHasData = r => Object.entries(r).some(([k,v]) => k!=='id' && v!=='' && v!=null);
   return stateSC.rows.some(rowHasData) ||
          statePilo.rows.some(rowHasData) ||
+         stateGeo61.rows.some(rowHasData) ||
+         Object.values(stateGeo61.header).some(v=>v!=='') ||
          Object.values(stateMad.items).some(v=>v!=='') ||
          Object.values(stateMad.header).some(v=>v!=='') ||
          Object.values(decisionState).some(d => d && (d.override || (d.signatures && Object.values(d.signatures).some(sg=>sg.name||sg.date||sg.dataUrl))));
@@ -2188,7 +2734,7 @@ window.addEventListener('beforeunload', e=>{
 function exportSession(){
   const snapshot = {
     version:1, savedAt:new Date().toISOString(),
-    stateMad, stateSC, statePilo,
+    stateMad, stateSC, statePilo, stateGeo61,
     decisionState, colVisibility, docIds
   };
   const blob = new Blob([JSON.stringify(snapshot)], {type:'application/json'});
@@ -2202,6 +2748,7 @@ function importSessionFile(file){
       if(data.stateMad) Object.assign(stateMad, data.stateMad);
       if(data.stateSC) Object.assign(stateSC, data.stateSC);
       if(data.statePilo) Object.assign(statePilo, data.statePilo);
+      if(data.stateGeo61) Object.assign(stateGeo61, data.stateGeo61);
       if(data.decisionState) Object.assign(decisionState, data.decisionState);
       if(data.colVisibility) Object.assign(colVisibility, data.colVisibility);
       if(data.docIds) Object.assign(docIds, data.docIds);
