@@ -128,11 +128,32 @@
   .panel h2 .badge-gold{background:var(--warn);}
   .req-mark{color:var(--bad);font-weight:800;}
 
-  .field-grid{
-    display:grid;grid-template-columns:repeat(auto-fill, minmax(190px,1fr));
-    gap:14px 16px;
+  /* Sous-titre léger pour regrouper plusieurs sections (D, S…) dans UN SEUL panel plutôt
+     qu'un .panel complet par section — évite de multiplier bordures/ombres/marges. */
+  .sub-h{
+    display:flex;align-items:center;gap:10px;
+    font-size:11px;text-transform:uppercase;font-weight:700;letter-spacing:1.1px;
+    color:var(--navy);margin:18px 0 12px;padding-top:16px;border-top:1px solid var(--line);
   }
-  label{display:block;font-size:10.5px;color:var(--ink-soft);margin-bottom:5px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;}
+  .sub-h .badge{
+    width:19px;height:19px;border-radius:5px;background:var(--navy);color:#fff;
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:10px;font-weight:800;flex-shrink:0;
+  }
+  .sub-h .badge-jade{background:var(--teal);}
+
+  /* Titre + cases de décision alignés sur une même ligne */
+  .dec-line{
+    display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+    margin:18px 0 0;padding-top:16px;border-top:1px solid var(--line);
+  }
+  .dec-line .sub-h{margin:0;padding-top:0;border-top:none;flex:0 0 auto;}
+
+  .field-grid{
+    display:grid;grid-template-columns:repeat(auto-fill, minmax(160px,1fr));
+    gap:11px 14px;
+  }
+  label{display:block;font-size:10px;color:var(--ink-soft);margin-bottom:3px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;line-height:1.3;}
   input[type=text],input[type=number],input[type=date],select,textarea{
     width:100%;font-family:var(--sans);font-size:13.5px;font-weight:600;color:var(--ink);
     border:none;border-bottom:1.5px solid var(--line-strong);background:transparent;
@@ -204,6 +225,49 @@
   th[data-colkey="epTotal"], th[data-colkey="compactage"]{background:#1B9E8E;color:#fff;}
   th[data-colkey="repere"], th[data-colkey="pk"], th[data-colkey="nr"], th[data-colkey="travee"]{background:var(--navy-light);}
 
+  /* Tableaux de relevés larges : scroll horizontal contenu + colonne(s) de repère figée(s),
+     pour rester lisible sur tablette/mobile sans perdre la ligne de référence. */
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:8px;}
+  .table-wrap table{margin-bottom:0;}
+  table.sticky-cols-1 thead th:nth-child(1),
+  table.sticky-cols-1 tbody td:nth-child(1),
+  table.sticky-cols-2 thead th:nth-child(1),
+  table.sticky-cols-2 thead th:nth-child(2),
+  table.sticky-cols-2 tbody td:nth-child(1),
+  table.sticky-cols-2 tbody td:nth-child(2){
+    position:sticky;left:0;
+  }
+  table.sticky-cols-2 thead th:nth-child(2),
+  table.sticky-cols-2 tbody td:nth-child(2){
+    left:var(--sticky-col1-w, 64px);
+  }
+  table.sticky-cols-1 thead th:nth-child(1),
+  table.sticky-cols-2 thead th:nth-child(1),
+  table.sticky-cols-2 thead th:nth-child(2){
+    z-index:3; /* au-dessus du reste du thead (déjà sticky en top) */
+    background:var(--navy-light); /* opaque : sinon les colonnes qui défilent transparaissent */
+  }
+  table.sticky-cols-1 tbody td:nth-child(1),
+  table.sticky-cols-2 tbody td:nth-child(1),
+  table.sticky-cols-2 tbody td:nth-child(2){
+    z-index:2;background:var(--panel);
+  }
+  table.sticky-cols-1 tbody tr:nth-child(even) td:nth-child(1),
+  table.sticky-cols-2 tbody tr:nth-child(even) td:nth-child(1),
+  table.sticky-cols-2 tbody tr:nth-child(even) td:nth-child(2){
+    background:#F7F9FC;
+  }
+  table.sticky-cols-1 tbody tr:hover td:nth-child(1),
+  table.sticky-cols-2 tbody tr:hover td:nth-child(1),
+  table.sticky-cols-2 tbody tr:hover td:nth-child(2){
+    background:var(--accent-soft);
+  }
+  /* liseré pour marquer visuellement la fin de la zone figée */
+  table.sticky-cols-1 thead th:nth-child(1), table.sticky-cols-1 tbody td:nth-child(1),
+  table.sticky-cols-2 thead th:nth-child(2), table.sticky-cols-2 tbody td:nth-child(2){
+    box-shadow:2px 0 4px -2px rgba(18,42,85,0.18);
+  }
+
   .status-pill{
     display:inline-flex;align-items:center;gap:5px;
     font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;
@@ -254,26 +318,31 @@
   .panel h2 .badge-jade{background:var(--teal);}
   .panel textarea{margin-top:10px;}
 
-  /* ── DÉCISION : deux cases cochables, comme sur la fiche papier ── */
-  .dec-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  /* ── DÉCISION : sélecteur segmenté, l'option retenue se remplit en plein (lecture immédiate,
+     façon tampon de visa) plutôt que deux cases à cocher qu'il faut inspecter ── */
+  .dec-row{
+    display:inline-flex;border:1px solid var(--line-strong);border-radius:5px;
+    overflow:hidden;background:#fff;
+  }
   .dec-opt{
-    display:flex;align-items:center;justify-content:center;gap:10px;
-    padding:15px;border:2px solid var(--line-strong);border-radius:6px;background:#fff;
-    cursor:pointer;user-select:none;font-family:var(--sans);font-size:13px;font-weight:800;
-    color:var(--ink-soft);transition:all .2s;letter-spacing:.3px;
+    flex:0 0 auto;padding:8px 20px;border:none;background:none;
+    cursor:pointer;user-select:none;font-family:var(--sans);font-size:11px;font-weight:700;
+    letter-spacing:1.1px;text-transform:uppercase;color:var(--ink-soft);
+    transition:background .15s,color .15s;
   }
-  .dec-ico{
-    width:22px;height:22px;border-radius:50%;border:2.5px solid currentColor;
-    display:inline-flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;
-  }
-  .dec-opt:hover{border-color:var(--ink);color:var(--ink);}
-  .dec-opt.conf.active{background:var(--teal-bg);border-color:var(--teal);color:#1B9E8E;}
-  .dec-opt.nc.active{background:var(--bad-bg);border-color:var(--bad);color:var(--bad);}
+  .dec-opt + .dec-opt{border-left:1px solid var(--line-strong);}
+  .dec-opt:hover{background:var(--paper);color:var(--ink);}
+  .dec-opt.conf.active{background:var(--ok);color:#fff;}
+  .dec-opt.nc.active{background:var(--bad);color:#fff;}
   .decision-hint{font-size:11px;color:var(--ink-soft);margin-top:10px;font-style:italic;}
+
+  @media (max-width:600px){
+    .dec-opt{padding:8px 14px;font-size:10.5px;letter-spacing:.8px;}
+  }
 
   /* ── SIGNATURES : deux boîtes jumelles ── */
   .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-  @media (max-width:720px){ .sig-grid, .dec-row{grid-template-columns:1fr;} }
+  @media (max-width:720px){ .sig-grid{grid-template-columns:1fr;} }
   .sig-box{border:1.5px solid var(--line-strong);border-radius:6px;overflow:hidden;background:#fff;}
   .sig-head{
     background:#F4F4F2;padding:6px 12px;border-bottom:1px solid var(--line);
@@ -290,6 +359,20 @@
     font-size:10.5px;color:var(--ink-soft);padding:2px 6px;
   }
   .btn-sig-clear:hover{color:var(--bad);}
+
+  /* Compacité sur téléphone : Identification et Signatures sont les blocs les plus répétitifs de
+     la fiche, on resserre leur gabarit au maximum sans perdre la lisibilité ni les cibles tactiles. */
+  @media (max-width:600px){
+    .panel{padding:12px 14px;margin-bottom:10px;}
+    .panel h2{margin:-12px -14px 12px;padding:8px 14px;}
+    .sub-h{margin:14px 0 10px;padding-top:12px;}
+    .field-grid{grid-template-columns:repeat(auto-fill, minmax(104px,1fr));gap:8px 10px;}
+    label{margin-bottom:2px;font-size:9.5px;}
+    input[type=text],input[type=number],input[type=date],select,textarea{padding:3px 1px;font-size:13px;}
+    .sig-head{padding:5px 10px;}
+    .sig-body{padding:8px 10px;gap:6px;}
+    canvas.sig-canvas{height:50px;}
+  }
 
   footer{margin-top:24px;font-size:11.5px;color:var(--ink-soft);text-align:center;}
 
@@ -345,22 +428,49 @@
       border-radius:4px 4px 0 0;
       padding:14px 18px !important;margin-bottom:14px !important;
     }
-    .notes-callout{border:1.5px solid var(--warn) !important;}
     .panel{
       border:1.5px solid var(--ink-soft) !important;box-shadow:none;
-      padding:14px 16px 16px;border-radius:4px;margin-bottom:14px;
+      padding:11px 13px 13px;border-radius:4px;margin-bottom:11px;
     }
     .decision-panel{break-inside:avoid;page-break-inside:avoid;}
     .panel h2{
-      margin:-14px -16px 12px;padding:6px 16px;
+      margin:-11px -13px 10px;padding:5px 13px;
       background:#EDEDEA !important;border-radius:2px 2px 0 0;
       border-bottom:1.5px solid var(--ink-soft);color:var(--ink) !important;
     }
+    .notes-callout{border:1.5px solid var(--warn) !important;padding:7px 10px !important;margin-bottom:10px !important;font-size:10px !important;}
     .panel h2 .badge{background:var(--navy) !important;}
     .panel h2 .badge-gold{background:var(--warn) !important;}
-    .field-grid > div{border:1px solid var(--line-strong);border-radius:3px;padding:5px 8px;}
+    /* IDENTIFICATION à l'impression : grille dense à filets partagés, pas une boîte par champ.
+       Le libellé passe en petit capitales au-dessus d'une valeur compacte : on garde
+       l'alignement en colonnes (contrairement à un libellé en ligne, qui décale les valeurs
+       selon la longueur du libellé) tout en divisant la hauteur du bloc par deux. */
+    .field-grid{
+      display:grid !important;grid-template-columns:repeat(4, 1fr) !important;gap:0 !important;
+      border:1px solid var(--line-strong);border-radius:3px;overflow:hidden;
+    }
+    .field-grid > div{
+      border:none !important;border-right:1px solid var(--line-strong);
+      border-bottom:1px solid var(--line-strong);
+      padding:3px 7px 4px !important;border-radius:0 !important;min-width:0;
+    }
+    .field-grid label{
+      font-size:7.5px !important;letter-spacing:0.4px;margin-bottom:1px !important;
+      color:var(--ink-soft);line-height:1.25;
+    }
+    .field-grid .print-static-value{font-size:10px !important;padding:0 !important;white-space:normal;}
     .tolerance-note{border:1px solid var(--line-strong) !important;}
-    .anomaly-info{border:1px solid var(--line-strong) !important;}
+    /* Aide à la saisie : le bandeau « aucune anomalie » n'apporte rien sur le document
+       imprimé (l'absence de surlignage dans le tableau le dit déjà). Seul le cas avec
+       anomalies est conservé, car il oriente la lecture de la décision. */
+    .anomaly-info{display:none !important;}
+    .anomaly-info.has-anomalies{
+      display:block !important;border:1px solid var(--warn) !important;
+      padding:5px 9px !important;margin-bottom:6px !important;font-size:10px !important;
+    }
+    /* Décision : titre et cases sur une seule ligne, filet de séparation resserré */
+    .dec-line{margin:9px 0 0 !important;padding-top:8px !important;gap:14px !important;}
+    .sub-h{margin:9px 0 7px !important;padding-top:8px !important;font-size:10px !important;}
     table{break-inside:auto;border:1.5px solid var(--ink-soft);margin:0 0 10px;width:100%;}
     tr{break-inside:avoid;page-break-inside:avoid;}
     thead th, tbody td{border:1px solid var(--line-strong) !important;}
@@ -385,22 +495,30 @@
     }
     .pill-opt.active.pill-c{color:var(--ok) !important;}
     .pill-opt.active.pill-nc{color:var(--bad) !important;}
+    /* Le scroll horizontal et les colonnes figées sont des aides à l'écran : sur papier ils
+       affichent une barre de défilement et tronquent les colonnes qui dépassent. On revient
+       donc à un tableau statique, entièrement déroulé. */
+    .table-wrap{overflow:visible !important;border-radius:0 !important;}
+    table.sticky-cols-1 thead th, table.sticky-cols-1 tbody td,
+    table.sticky-cols-2 thead th, table.sticky-cols-2 tbody td{
+      position:static !important;left:auto !important;z-index:auto !important;
+      box-shadow:none !important;
+    }
+    thead th{position:static !important;}
     .decision-hint, .sig-hint, .btn-sig-clear, .print-decision{display:none !important;}
-    .dec-row{display:grid !important;grid-template-columns:1fr 1fr !important;gap:10px;}
-    .dec-opt{padding:9px !important;font-size:11px !important;border:1.5px solid var(--line-strong) !important;background:#fff !important;color:var(--ink-soft) !important;}
-    .dec-opt.conf.active{background:var(--teal-bg) !important;border-color:var(--teal) !important;color:#1B9E8E !important;}
-    .dec-opt.nc.active{background:var(--bad-bg) !important;border-color:var(--bad) !important;color:var(--bad) !important;}
-    .dec-opt.active .dec-ico{background:currentColor;}
-    .dec-opt.active .dec-ico{color:#fff;-webkit-text-fill-color:#fff;}
-    .dec-opt.conf.active .dec-ico{background:var(--teal);border-color:var(--teal);}
-    .dec-opt.nc.active .dec-ico{background:var(--bad);border-color:var(--bad);}
-    .sig-grid{display:grid !important;grid-template-columns:1fr 1fr !important;gap:10px;}
+    .dec-row{display:inline-flex !important;border:1px solid var(--ink-soft) !important;border-radius:4px;overflow:hidden;}
+    .dec-opt{padding:5px 16px !important;font-size:9.5px !important;border:none !important;background:#fff !important;color:var(--ink-soft) !important;}
+    .dec-opt + .dec-opt{border-left:1px solid var(--ink-soft) !important;}
+    .dec-opt.conf.active{background:var(--ok) !important;color:#fff !important;}
+    .dec-opt.nc.active{background:var(--bad) !important;color:#fff !important;}
+    .sig-grid{display:grid !important;grid-template-columns:1fr 1fr !important;gap:9px;}
     .sig-box{border:1px solid var(--ink-soft) !important;background:#fff !important;break-inside:avoid;}
-    .sig-head{background:#EDEDEA !important;}
-    .sig-body{padding:8px 10px !important;gap:6px !important;}
+    .sig-head{background:#EDEDEA !important;padding:4px 9px !important;font-size:8.5px !important;}
+    .sig-body{padding:6px 9px 7px !important;gap:5px !important;}
     .sig-row{display:grid !important;grid-template-columns:2fr 1fr 1.2fr !important;gap:8px;}
+    .sig-body label{font-size:7.5px !important;margin-bottom:1px !important;}
     .sig-wrap{border:1px solid var(--ink-soft) !important;background:#fff !important;border-radius:3px;}
-    canvas.sig-canvas{height:56px !important;}
+    canvas.sig-canvas{height:52px !important;}
     .sig-panel{break-inside:avoid;page-break-inside:avoid;}
     .pill-toggle:not(:has(.pill-opt.active))::after{content:"—";color:#aaa;font-size:11px;}
     .print-footer{
@@ -513,6 +631,36 @@ function pillToggle(options, currentValue, onChange){
     btn.addEventListener('click', ()=>onChange(currentValue===opt ? '' : opt));
     wrap.appendChild(btn);
   });
+  return wrap;
+}
+/* Enveloppe un tableau dans un conteneur scrollable horizontalement (tablette/mobile) */
+function wrapTable(table, stickyCols=0){
+  const wrap = el('div',{class:'table-wrap'});
+  if(stickyCols>0) table.classList.add('sticky-cols-'+stickyCols);
+  wrap.appendChild(table);
+  if(stickyCols>1){
+    // L'offset de la 2e colonne figée dépend de la largeur réelle de la 1ère. On ne peut pas la
+    // mesurer tout de suite (le tableau n'est pas encore attaché au document, largeur = 0), donc
+    // on observe la cellule : ResizeObserver déclenche dès qu'elle a une mise en page, puis à
+    // chaque changement de largeur (rotation, zoom, colonne masquée).
+    const sync = ()=>{
+      const c = table.querySelector('thead th:first-child');
+      if(!c) return;
+      const w = c.getBoundingClientRect().width;
+      if(w>0) table.style.setProperty('--sticky-col1-w', w+'px');
+    };
+    if(typeof ResizeObserver!=='undefined'){
+      const ro = new ResizeObserver(sync);
+      requestAnimationFrame(()=>{
+        const c = table.querySelector('thead th:first-child');
+        if(c) ro.observe(c);
+      });
+    } else {
+      requestAnimationFrame(sync);
+      setTimeout(sync, 0);
+    }
+    window.addEventListener('resize', sync);
+  }
   return wrap;
 }
 function buildHeaderCell(key, labelHtml, onClear){
@@ -867,8 +1015,7 @@ function renderMad(container){
   const grid = el('div',{class:'field-grid'});
   const fields = [
     ['chantier','Chantier'],['date','Date','date'],['typePose','Type de pose'],
-    ['voie','Voie n°'],['advNum','ADV n°'],['typeAppareil','Type d\'appareil'],
-    ['planRef','Référence plan de pose (+ indice)']
+    ['voie','Voie n°'],['advNum','ADV n°'],['typeAppareil','Type d\'appareil']
   ];
   fields.forEach(([k,label,type='text'])=>{
     const wrap = el('div');
@@ -913,7 +1060,7 @@ function renderMad(container){
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
-  p2.appendChild(table);
+  p2.appendChild(wrapTable(table));
 
   const grid2 = el('div',{class:'field-grid', html:''});
   const wrap1 = el('div');
@@ -1095,7 +1242,7 @@ function renderSC(container){
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
-  p2.appendChild(table);
+  p2.appendChild(wrapTable(table, 2));
   container.appendChild(p2);
   container.appendChild(decisionAndSignature('sc', countAnomaliesSC(), exportSC));
 }
@@ -1247,7 +1394,7 @@ function renderPilo(container){
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
-  p2.appendChild(table);
+  p2.appendChild(wrapTable(table, 1));
   container.appendChild(p2);
   container.appendChild(decisionAndSignature('pilo', countAnomaliesPilo(), exportPilo));
 }
@@ -1508,8 +1655,7 @@ function xlsxPageSetup(ws, docid, landscape, singlePage){
 function fieldPairs(tabKey){
   if(tabKey==='mad'){ const h=stateMad.header; return [
     ['Chantier',h.chantier],['Date',fmtDateFR(h.date),true],['Type de pose',h.typePose],['Voie n°',h.voie,true],
-    ['ADV n°',h.advNum,true],["Type d'appareil",h.typeAppareil],['Plancher',h.plancher],['Pose',h.pose],
-    ['Référence plan de pose',h.planRef]]; }
+    ['ADV n°',h.advNum,true],["Type d'appareil",h.typeAppareil],['Plancher',h.plancher],['Pose',h.pose]]; }
   if(tabKey==='sc'){ const h=stateSC.header; return [
     ['Projet',h.projet],['Voie(s)',h.voie,true],['Appareil(s)',h.appareils],['Date',fmtDateFR(h.date),true],
     ['Heure',h.heure],['du PK',h.pkDebut,true],['au PK',h.pkFin,true]]; }
@@ -1687,27 +1833,24 @@ function signatureCard(tabKey, slotKey, title){
 function decisionAndSignature(tabKey, anomalyCount, onExport){
   const d = ensureDecisionState(tabKey);
   const st = stateFor(tabKey);
-  const frag = document.createDocumentFragment();
+  const wrap = el('div',{class:'panel decision-panel sig-panel'});
 
   /* C — Observations */
-  const obs = el('div',{class:'panel'});
-  obs.appendChild(el('h2',{html:'<span class="badge">C</span>Observations'}));
+  wrap.appendChild(el('h2',{html:'<span class="badge">C</span>Observations'}));
   const infoWrap = el('div',{id:`anomaly-info-${tabKey}`});
   infoWrap.appendChild(anomalyText(anomalyCount));
-  obs.appendChild(infoWrap);
+  wrap.appendChild(infoWrap);
   const ta = el('textarea',{placeholder:'Anomalies, zones NC, réserves, actions correctives demandées…', rows:'3'});
   ta.value = st.observations || '';
   ta.addEventListener('input', e=>{ st.observations = e.target.value; });
-  obs.appendChild(ta);
-  frag.appendChild(obs);
+  wrap.appendChild(ta);
 
-  /* D — Décision */
-  const dec = el('div',{class:'panel decision-panel'});
-  dec.appendChild(el('h2',{html:'<span class="badge badge-jade">D</span>Décision'}));
+  /* D — Décision : titre et cases sur la même ligne (un seul bit d'information) */
+  const decLine = el('div',{class:'dec-line'});
+  decLine.appendChild(el('div',{class:'sub-h', html:'<span class="badge badge-jade">D</span>Décision'}));
   const row = el('div',{class:'dec-row'});
-  const mk = (val,label,cls,ico)=>{
+  const mk = (val,label,cls)=>{
     const b = el('button',{type:'button', class:'dec-opt '+cls+(d.override===val?' active':'')});
-    b.appendChild(el('span',{class:'dec-ico', html:ico}));
     b.appendChild(document.createTextNode(label));
     b.addEventListener('click', ()=>{
       d.override = (d.override===val) ? null : val;
@@ -1716,20 +1859,19 @@ function decisionAndSignature(tabKey, anomalyCount, onExport){
     });
     return b;
   };
-  row.appendChild(mk('c','CONFORME','conf','✓'));
-  row.appendChild(mk('nc','NON-CONFORME','nc','✗'));
-  dec.appendChild(row);
-  dec.appendChild(el('div',{class:'decision-hint', html:"La décision relève du signataire — les surlignages ne sont qu'une aide au contrôle."}));
-  frag.appendChild(dec);
+  row.appendChild(mk('c','CONFORME','conf'));
+  row.appendChild(mk('nc','NON-CONFORME','nc'));
+  decLine.appendChild(row);
+  wrap.appendChild(decLine);
+  wrap.appendChild(el('div',{class:'decision-hint', html:"La décision relève du signataire — les surlignages ne sont qu'une aide au contrôle."}));
 
   /* S — Signatures */
-  const sigs = el('div',{class:'panel sig-panel'});
-  sigs.appendChild(el('h2',{html:'<span class="badge">S</span>Signatures'}));
+  wrap.appendChild(el('div',{class:'sub-h', html:'<span class="badge">S</span>Signatures'}));
   const grid = el('div',{class:'sig-grid'});
   grid.appendChild(signatureCard(tabKey, 'realise', 'Réalisé par — Entreprise'));
   grid.appendChild(signatureCard(tabKey, 'visa', 'Visa RATP — Contrôleur'));
-  sigs.appendChild(grid);
-  const btnRow = el('div',{class:'btn-row', style:'margin-top:18px;'});
+  wrap.appendChild(grid);
+  const btnRow = el('div',{class:'btn-row', style:'margin-top:14px;'});
   const exportBtn = el('button',{class:'btn btn-primary', html:'Exporter (.xlsx)'});
   exportBtn.addEventListener('click', ()=>exportXlsx(tabKey, onExport));
   const printBtn = el('button',{class:'btn', html:'Imprimer / PDF'});
@@ -1741,13 +1883,12 @@ function decisionAndSignature(tabKey, anomalyCount, onExport){
     colBtn.addEventListener('click', ()=>{
       if(colsPanel){ colsPanel.remove(); colsPanel=null; return; }
       colsPanel = buildColsPanel(tabKey);
-      sigs.appendChild(colsPanel);
+      wrap.appendChild(colsPanel);
     });
     btnRow.appendChild(colBtn);
   }
-  sigs.appendChild(btnRow);
-  frag.appendChild(sigs);
-  return frag;
+  wrap.appendChild(btnRow);
+  return wrap;
 }
 
 function updateDecisionInfo(tabKey, anomalyCount){
