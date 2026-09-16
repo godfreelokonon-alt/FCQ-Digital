@@ -219,11 +219,32 @@
   td input[data-key="repere"], td input[data-key="nr"], td input[data-key="travee"],
   td input[data-key="equerrage"]{min-width:46px;}
   td input.num-cell{font-variant-numeric:tabular-nums;}
+  /* Champ signé : le bouton ± occupe le bord droit de la cellule sans masquer la valeur */
+  .num-wrap{position:relative;display:block;}
+  .num-wrap input{padding-right:20px !important;}
+  .sign-btn{
+    position:absolute;right:0;top:50%;transform:translateY(-50%);
+    width:19px;height:19px;padding:0;border:1px solid var(--line-strong);border-radius:4px;
+    background:#fff;color:var(--ink-soft);font-size:12px;line-height:1;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .sign-btn:hover{border-color:var(--navy);color:var(--navy);}
+  @media (pointer: coarse){ .sign-btn{width:26px;height:26px;font-size:14px;} .num-wrap input{padding-right:28px !important;} }
+  @media print{ .sign-btn{display:none !important;} .num-wrap input{padding-right:1px !important;} }
   /* FC-GEO-61 : étiquettes imprimées (non saisissables) et cellules calculées */
   td.geo-lbl{text-align:center;font-size:11px;color:var(--ink-soft);white-space:nowrap;}
   td.calc-cell{text-align:center;font-variant-numeric:tabular-nums;font-weight:600;background:var(--warn-bg);}
   td.calc-cell.cell-oob{background:var(--bad-bg);color:var(--bad);text-decoration:underline;}
   .fileref-warn{margin-top:6px;font-size:11.5px;font-weight:700;color:var(--bad);}
+  /* FC-GEO-61 Courbe : trois codes de fond, repris de la légende de la fiche papier */
+  .cb-legend{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;font-size:11px;color:var(--ink-soft);margin-bottom:10px;}
+  .cb-legend .lg{width:11px;height:11px;border:1px solid var(--line-strong);border-radius:2px;margin-right:5px;display:inline-block;vertical-align:-1px;}
+  .lg-terrain{background:#fff;} .lg-theo{background:#CCFFFF;} .lg-calc{background:#FFFF99;}
+  .lg-ecart{background:#FFFF99;box-shadow:inset 0 0 0 1px var(--ink);}
+  td.cell-theo{background:#EAFBFB;}
+  td.cell-theo.calc{text-align:center;font-variant-numeric:tabular-nums;font-weight:600;}
+  td.calc-cell.ecart{font-weight:800;}
+  td.geo-lbl.lbl-th{background:#EAFBFB;} td.geo-lbl.lbl-calc{background:var(--warn-bg);}
   .paste-hint{font-size:11.5px;color:var(--ink-soft);line-height:1.5;margin-bottom:10px;}
   .sheet-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);}
   .sheet-count{font-size:11.5px;color:var(--ink-soft);font-weight:600;}
@@ -667,6 +688,35 @@ function pillToggle(options, currentValue, onChange){
   paint();
   return wrap;
 }
+/* ---------- Saisie des valeurs signées sur tablette ----------
+   Le clavier numérique d'iPadOS/Android n'expose pas le signe moins : un dévers de −4 mm est
+   impossible à saisir au doigt. On adjoint donc à chaque cellule signée un bouton « ± » qui
+   bascule le signe de la valeur courante, sans passer par le clavier. La frappe du « - »
+   reste évidemment acceptée pour ceux qui saisissent au clavier physique. */
+function toggleSign(v){
+  const t = String(v==null?'':v).trim();
+  if(t==='') return '-';                       // amorce une saisie négative sur cellule vide
+  return t.startsWith('-') ? t.slice(1) : '-'+t;
+}
+/* Construit un champ numérique signé : renvoie {wrap, input} — `wrap` va dans la cellule,
+   `input` reste la référence à câbler (collage, navigation, événements). */
+function signedNumInput(value, onChange){
+  const wrap = el('span',{class:'num-wrap'});
+  const input = el('input',{type:'text', value:(value==null?'':value)});
+  input.setAttribute('inputmode','decimal');
+  input.classList.add('num-cell');
+  const btn = el('button',{type:'button', class:'sign-btn', title:'Inverser le signe', html:'±'});
+  btn.addEventListener('mousedown', e=>e.preventDefault());   // ne pas voler le focus au champ
+  btn.addEventListener('click', ()=>{
+    input.value = toggleSign(input.value);
+    onChange(input.value);
+    input.dispatchEvent(new Event('input',{bubbles:true}));
+    input.focus();
+  });
+  wrap.appendChild(input); wrap.appendChild(btn);
+  return {wrap, input};
+}
+
 /* Enveloppe un tableau dans un conteneur scrollable horizontalement (tablette/mobile) */
 function wrapTable(table, stickyCols=0){
   const wrap = el('div',{class:'table-wrap'});
@@ -875,8 +925,8 @@ function copyToClipboard(text){
 function copySelection(){
   if(!gridSelection.active) return;
   const {tabKey, r1, r2, c1, c2} = gridSelection;
-  const rowsArr = tabKey==='sc' ? stateSC.rows : tabKey==='geo61' ? stateGeo61.rows : statePilo.rows;
-  const cols = tabKey==='sc' ? scCols : tabKey==='geo61' ? geo61Cols : piloCols;
+  const rowsArr = tabKey==='sc' ? stateSC.rows : tabKey==='geo61' ? stateGeo61.rows : tabKey==='courbe' ? stateCourbe.rows : statePilo.rows;
+  const cols = tabKey==='sc' ? scCols : tabKey==='geo61' ? geo61Cols : tabKey==='courbe' ? cbCols : piloCols;
   const lines = [];
   for(let ri=r1; ri<=r2; ri++){
     const row = rowsArr[ri];
@@ -1209,7 +1259,7 @@ function countAnomaliesSC(){
 }
 
 const scCols = [
-  ['repere','Repère','text'],['pk','PK','number'],['nr','NR','number'],
+  ['repere','Repère','text'],['pk','PK','number'],['nr','Niveau rail','number'],
   ['niveauAvant','Niveau SCB avant relevage','number'],
   ['epSC1','Ép. SC n°1','number'],['niveauSC1','Niveau SC n°1','number'],
   ['epSC2','Ép. SC n°2','number'],['niveauSC2','Niveau SC n°2','number'],
@@ -1460,18 +1510,27 @@ function renderPilo(container){
       // number rejette « 149,5 » et renvoie une valeur VIDE (perte de saisie silencieuse,
       // y compris au collage depuis Excel). num() se charge de la conversion.
       const isNum = type==='number';
-      const inp = el('input',{type:'text', value:r[k]});
-      if(isNum){ inp.setAttribute('inputmode','decimal'); inp.classList.add('num-cell'); }
+      // FG, FD et l'équerrage sont des écarts : ils peuvent être négatifs → bouton ±
+      const signed = ['FG','FD','equerrage'].includes(k);
+      let inp, node;
+      if(signed){
+        const si = signedNumInput(r[k], v=>{ r[k]=v; refreshPiloRow(tr,r); });
+        inp = si.input; node = si.wrap;
+      } else {
+        inp = el('input',{type:'text', value:r[k]});
+        if(isNum){ inp.setAttribute('inputmode','decimal'); inp.classList.add('num-cell'); }
+        node = inp;
+      }
       inp.dataset.key = k;
       wireCell(inp, 'pilo', rowIdx, colIdx);
-      if(['FG','FD','equerrage'].includes(k) && piloFieldStatus(r,k)===false) inp.classList.add('input-oob');
+      if(signed && piloFieldStatus(r,k)===false) inp.classList.add('input-oob');
       inp.addEventListener('input', e=>{ r[k]=e.target.value; refreshPiloRow(tr,r); });
       inp.addEventListener('paste', e=>handleTablePaste(
         e, statePilo.rows, piloCols, newPiloRow,
         statePilo.rows.indexOf(r), piloCols.findIndex(c=>c[0]===k),
         ()=>renderPilo(container)
       ));
-      td.appendChild(inp);
+      td.appendChild(node);
       tr.appendChild(td);
     });
     const tdAct = el('td',{class:'row-actions'});
@@ -1885,6 +1944,11 @@ function buildXlsxFiche(ws, wb, tabKey){
    ========================================================== */
 const GEO61_PTS = 27;
 const GEO61_LETTERS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','£'];
+function geo61Note1(){
+  return stateGeo61.frMode==='gauchedroite'
+    ? "Afin d'éviter toute confusion entre file gauche et file droite, Il est préconisé de faire le relevé face au train"
+    : "Afin d'éviter toute confusion avec les files intérieure et extérieure, Il est préconisé de faire le relevé face au train";
+}
 const GEO61_NOTES = [
   "Afin d'éviter toute confusion avec les files intérieure et extérieure, Il est préconisé de faire le relevé face au train",
   "Pour le dévers utiliser le signe + si la file de référence est plus basse",
@@ -1901,7 +1965,13 @@ function geo61PadToSheets(){
 }
 const stateGeo61 = {
   header:{go:'', ligne:'', voie:'', interstation:'', pkOrigine:'', pkFin:'', numRegle:'', releve:''},
-  fileRef:'',            // 'ext' | 'int' — conditionne tous les calculs
+  /* Repérage de la file de référence. Deux nomenclatures coexistent selon le contexte :
+     en courbe on parle de file extérieure / intérieure, en alignement de file gauche / droite.
+     Le mode ne change que le VOCABULAIRE : la fiche garde ses deux cases à cocher (R9/R10)
+     et la garde de calcul S11 continue de fonctionner à l'identique. */
+  frMode:'extint',       // 'extint' | 'gauchedroite'
+  fileRef:'',            // 'a' (1re case) | 'b' (2e case) — conditionne tous les calculs
+  pkSens:'croissant',    // sens de chaînage des PK : 'croissant' | 'decroissant'
   // La fiche papier ne fixe aucune tolérance sur le gauche : elle calcule, le signataire statue.
   // Ces seuils restent donc vides par défaut ; renseignés, ils activent le surlignage.
   tol3:null, tol18:null,
@@ -1913,6 +1983,13 @@ const stateGeo61 = {
    La fiche papier est paginée par blocs de 27 points. Chaque feuille est autonome : la
    fiche source redémarre ses étiquettes (A1..£1, puis A2..£2) et ses formules ne
    référencent jamais la feuille précédente. On reproduit ce cloisonnement. */
+/* Libellés des deux files selon le mode de repérage choisi. */
+const GEO61_FR_LABELS = {
+  extint:      {a:'extérieure', b:'intérieure', aCap:'Extérieure', bCap:'Intérieure'},
+  gauchedroite:{a:'gauche',     b:'droite',     aCap:'Gauche',     bCap:'Droite'}
+};
+function geo61FrLabels(){ return GEO61_FR_LABELS[stateGeo61.frMode] || GEO61_FR_LABELS.extint; }
+
 function geo61SheetCount(){ return Math.max(1, Math.ceil(stateGeo61.rows.length / GEO61_PTS)); }
 function geo61SheetOf(i){ return Math.floor(i / GEO61_PTS); }          // 0-based
 function geo61SameSheet(i,j){ return geo61SheetOf(i)===geo61SheetOf(j); }
@@ -1924,14 +2001,16 @@ function geo61RemoveLastSheet(){
 
 /* Étiquette d'un point : lettre de rang dans la feuille + numéro de feuille (« A1= », « B2= »). */
 function geo61Label(i){ return GEO61_LETTERS[i % GEO61_PTS] + (geo61SheetOf(i)+1); }
-/* Étiquettes des colonnes calculées. Vides si l'opération franchirait une feuille. */
-function geo61Lbl3(i){ return (i<1 || !geo61SameSheet(i,i-1)) ? '' : `${geo61Label(i-1)}-${geo61Label(i)}=`; }
-function geo61Lbl18(i){ return (i<6 || !geo61SameSheet(i,i-6)) ? '' : `${geo61Label(i-6)}-${geo61Label(i)}=`; }
+/* Étiquettes des colonnes calculées. La voie est CONTINUE : une opération qui franchit une
+   limite de feuille reste valide et s'écrit « £1-A2= ». Le découpage en feuilles est une
+   pagination, pas une coupure du relevé. */
+function geo61Lbl3(i){ return i<1 ? '' : `${geo61Label(i-1)}-${geo61Label(i)}=`; }
+function geo61Lbl18(i){ return i<6 ? '' : `${geo61Label(i-6)}-${geo61Label(i)}=`; }
 
 /* Gauche = écart entre deux dévers, toujours positif (note 3). null si incalculable. */
 function geo61Gauche(i, span){
   if(!stateGeo61.fileRef) return null;   // garde : file de référence non choisie
-  if(i < span || !geo61SameSheet(i, i-span)) return null;
+  if(i < span) return null;   // continuité assurée d'une feuille à l'autre
   const a = num(stateGeo61.rows[i].devers), b = num(stateGeo61.rows[i-span].devers);
   if(a===null || b===null) return null;
   return Math.round(Math.abs(a-b)*1000)/1000;
@@ -1978,10 +2057,18 @@ function formatPK(model, metres){
 function geo61ChainPK(from){
   const model = parsePK(stateGeo61.rows[from].pk);
   if(!model) return false;
+  const pas = stateGeo61.pkSens==='decroissant' ? -3 : 3;
   for(let i=from+1; i<stateGeo61.rows.length; i++){
-    stateGeo61.rows[i].pk = formatPK(model, model.metres + 3*(i-from));
+    const m = model.metres + pas*(i-from);
+    if(m < 0) break;                       // on s'arrête plutôt que de produire un PK négatif
+    stateGeo61.rows[i].pk = formatPK(model, m);
   }
   return true;
+}
+/* Rechaîne depuis la première ligne dont le PK est interprétable (bouton « Rechaîner »). */
+function geo61RechainAll(){
+  const i = stateGeo61.rows.findIndex(r=>parsePK(r.pk));
+  return i<0 ? false : geo61ChainPK(i);
 }
 
 /* ==========================================================
@@ -2081,14 +2168,17 @@ function buildGeo61Sheet(ws, wb, sheetIdx){
   put(7,14,17,h.pkFin,{h:'center',bd:'mmmm'});
 
   /* ---------- File de référence : deux cases à cocher ---------- */
-  // bordure droite seule : le trait ferme la phrase juste avant la case à cocher
-  put(9,1,17,'Si la file de référence FR est la file extérieure, cocher la case  ',{h:'right',bd:'   m'});
-  put(9,18,18,stateGeo61.fileRef==='ext'?'X':'',{h:'center',bold:true,bd:'mmmm'});
+  // bordure droite seule : le trait ferme la phrase juste avant la case à cocher.
+  // Le libellé suit le mode de repérage choisi (extérieure/intérieure ou gauche/droite) :
+  // seules les deux cases R9/R10 comptent pour la garde S11, le vocabulaire est libre.
+  const FRL = geo61FrLabels();
+  put(9,1,17,`Si la file de référence FR est la file ${FRL.a}, cocher la case  `,{h:'right',bd:'   m'});
+  put(9,18,18,stateGeo61.fileRef==='a'?'X':'',{h:'center',bold:true,bd:'mmmm'});
   put(9,21,26,'Numéro de la règle',{h:'center',bd:'mmmm'});
   put(9,27,29,h.numRegle,{h:'center',v:'bottom',bd:'mmmm'});
 
-  put(10,1,17,'Si la file de référence FR est la file intérieure, cocher la case  ',{h:'right',bd:'   m'});
-  put(10,18,18,stateGeo61.fileRef==='int'?'X':'',{h:'center',bold:true,bd:'mmmm'});
+  put(10,1,17,`Si la file de référence FR est la file ${FRL.b}, cocher la case  `,{h:'right',bd:'   m'});
+  put(10,18,18,stateGeo61.fileRef==='b'?'X':'',{h:'center',bold:true,bd:'mmmm'});
   put(10,21,26,'Relevé avant bourrage',{h:'center',bd:'mmmm'});
   put(10,27,28,h.releve==='Avant bourrage'?'Oui':'',{h:'center',bd:'mmmm',fill:XC.input});
 
@@ -2100,7 +2190,7 @@ function buildGeo61Sheet(ws, wb, sheetIdx){
   ws.dataValidations.add('AB11', listDV('$AE$10'));
 
   /* ---------- Notes ---------- */
-  put(12,1,30,GEO61_NOTES[0],{bold:true,h:'center',v:'bottom',bd:'dddd'});
+  put(12,1,30,geo61Note1(),{bold:true,h:'center',v:'bottom',bd:'dddd'});
   put(13,1,1,'(2) '+GEO61_NOTES[1],{h:'left',v:'bottom'});
   put(14,1,1,'(3) '+GEO61_NOTES[2],{h:'left',v:'bottom'});
 
@@ -2123,6 +2213,14 @@ function buildGeo61Sheet(ws, wb, sheetIdx){
   /* ---------- 27 lignes de relevé ---------- */
   const R0=G61.firstRow;
   const dCol=colLetter(G61.blocks[3].c1);
+  /* La voie est continue d'une feuille à l'autre : les premières lignes d'une feuille doivent
+     référencer les dernières de la précédente. On compose donc la référence à partir de
+     l'index GLOBAL du point, en préfixant le nom de feuille quand elle change. */
+  const ref=(gi,col)=>{
+    const sh=Math.floor(gi/GEO61_PTS), row=R0+(gi%GEO61_PTS);
+    if(sh===sheetIdx) return `${col}${row}`;
+    return `'${sh===0?'Gauche':`Gauche (${sh+1})`}'!${col}${row}`;
+  };
   sheetRows.forEach((row,i)=>{
     const gi=base+i, r=R0+i;
     const vals=[
@@ -2131,9 +2229,9 @@ function buildGeo61Sheet(ws, wb, sheetIdx){
       geo61Label(gi)+'=',
       num(row.devers)!==null?num(row.devers):row.devers,
       geo61Lbl3(gi),
-      (i>=1)?{formula:`IF($S$11=1,IF(OR(COUNTBLANK(${dCol}${r})=1,COUNTBLANK(${dCol}${r-1})=1)," ",ABS(${dCol}${r}-${dCol}${r-1}))," ")`}:null,
+      (gi>=1)?{formula:`IF($S$11=1,IF(OR(COUNTBLANK(${dCol}${r})=1,COUNTBLANK(${ref(gi-1,dCol)})=1)," ",ABS(${dCol}${r}-${ref(gi-1,dCol)}))," ")`}:null,
       geo61Lbl18(gi),
-      (i>=6)?{formula:`IF($S$11=1,IF(OR(COUNTBLANK(${dCol}${r})=1,COUNTBLANK(${dCol}${r-6})=1)," ",ABS(${dCol}${r}-${dCol}${r-6}))," ")`}:null
+      (gi>=6)?{formula:`IF($S$11=1,IF(OR(COUNTBLANK(${dCol}${r})=1,COUNTBLANK(${ref(gi-6,dCol)})=1)," ",ABS(${dCol}${r}-${ref(gi-6,dCol)}))," ")`}:null
     ];
     G61.blocks.forEach((b,bi)=>{
       put(r,b.c1,b.c2, vals[bi]===null?undefined:vals[bi],
@@ -2154,8 +2252,8 @@ function buildGeo61Sheet(ws, wb, sheetIdx){
   hid('S11',{formula:'SUM(S9:S10)'});
   ws.getCell('S11').alignment={horizontal:'center',vertical:'bottom'};
   // R9/R10 portent la coche : les formules d'aide en dépendent
-  ws.getCell('R9').value  = stateGeo61.fileRef==='ext'?'X':null;
-  ws.getCell('R10').value = stateGeo61.fileRef==='int'?'X':null;
+  ws.getCell('R9').value  = stateGeo61.fileRef==='a'?'X':null;
+  ws.getCell('R10').value = stateGeo61.fileRef==='b'?'X':null;
   for(let i=0;i<sheetRows.length;i++){
     const r=R0+i;
     hid(`AE${r}`,{formula:`COUNTBLANK(${dCol}${r})`});
@@ -2212,6 +2310,217 @@ function signerName(tabKey, which){
   return (d.signatures[which] && d.signatures[which].name) || '';
 }
 
+
+/* ==========================================================
+   Export FC-GEO-61 Courbe — réplique de la fiche Excel RATP
+   Géométrie relevée sur le fichier source (onglets « Gauche en courbe N ») :
+     30 colonnes · A1:AD55 · A4 portrait · fitToWidth/Height = 1
+     16 blocs par ligne de relevé (10 en-têtes fusionnés sur les lignes 15→19)
+     bordures : 1re ligne top=medium, lignes courantes top/bottom=thin, dernière bottom=medium
+   ========================================================== */
+const CB = {
+  // {c1,c2, lr:'gauche droite', fill, align, bold}
+  blocks:[
+    {c1:1, c2:3,  lr:'mm'},                                  // PK
+    {c1:4, c2:6,  lr:'mm'},                                  // Écartement
+    {c1:7, c2:8,  lr:'m ', fill:'theo', align:null},         // (A1) =
+    {c1:9, c2:9,  lr:' m', fill:'theo'},                     // Dth
+    {c1:10,c2:11, lr:'m ', align:null},                      // A1 =
+    {c1:12,c2:12, lr:' m'},                                  // D
+    {c1:13,c2:14, lr:'m ', fill:'theo', align:null},         // (A1)-(B1) =
+    {c1:15,c2:16, lr:' m', fill:'theo'},                     // gauche théorique 3 m
+    {c1:17,c2:18, lr:'m ', fill:'calc', align:null},         // A1-B1 =
+    {c1:19,c2:19, lr:' m', fill:'calc'},                     // gauche mesuré 3 m
+    {c1:20,c2:21, lr:'mm', fill:'calc', bold:true},          // écart 3 m
+    {c1:22,c2:23, lr:'m ', fill:'theo', align:null},         // (A1)-(G1) =
+    {c1:24,c2:25, lr:' m', fill:'theo'},                     // gauche théorique 18 m
+    {c1:26,c2:27, lr:'m ', fill:'calc', align:null},         // A1-G1 =
+    {c1:28,c2:28, lr:' m', fill:'calc'},                     // gauche mesuré 18 m
+    {c1:29,c2:30, lr:'mm', fill:'calc', bold:true}           // écart 18 m
+  ],
+  heads:[[1,3,'P K\ntous les\n3 mètres'],[4,6,'ÉCARTEMENT\nmesuré\n(mm)'],
+         [7,9,'DÉVERS\nTHÉORIQUE  (3)\nDth  (mm)'],[10,12,'DEVERS\nStatique\nmesuré à la règle (2)\nD  (mm)'],
+         [13,16,'GAUCHE THÉORIQUE\nSUR\n3 M  (4)'],[17,19,'GAUCHE COURT\nSUR\n3 M  (4)'],
+         [20,21,'ÉCART\nSUR\n3 M  (5)'],[22,25,'GAUCHE THÉORIQUE\nSUR\n18 M  (4)'],
+         [26,28,'GAUCHE\nSUR\n18 M  (4)'],[29,30,'ÉCART\nSUR\n18 M  (5)']],
+  widthRanges:[[1,10,5],[11,11,4],[12,13,6],[14,14,8],[15,16,3],[17,22,6],[23,30,8],[31,32,11.43]],
+  firstRow:20, defaultWidth:11.42, defaultRowHeight:12.75
+};
+
+function buildCourbeSheet(ws, wb, sheetIdx){
+  const h=stateCourbe.header;
+  const base=sheetIdx*GEO61_PTS;
+  const sheetRows=stateCourbe.rows.slice(base, base+GEO61_PTS);
+
+  ws.properties.defaultColWidth=CB.defaultWidth;
+  ws.properties.defaultRowHeight=CB.defaultRowHeight;
+  CB.widthRanges.forEach(([c1,c2,w])=>{ for(let c=c1;c<=c2;c++) ws.getColumn(c).width=w; });
+  ws.views=[{showGridLines:true}];
+
+  const put=(r,c1,c2,value,o={})=>{
+    if(c1!==c2) ws.mergeCells(r,c1,r,c2);
+    const cell=ws.getCell(r,c1);
+    if(value!==undefined && value!==null) cell.value=value;
+    cell.font={name:XF.sans,size:o.size||10,bold:!!o.bold,color:{argb:o.color||XC.black}};
+    const al={vertical:o.v||'center',wrapText:!!o.wrap};
+    if(o.h) al.horizontal=o.h;
+    cell.alignment=al;
+    if(o.numFmt) cell.numFmt=o.numFmt;
+    if(o.fill) for(let c=c1;c<=c2;c++) ws.getCell(r,c).fill=xFill(o.fill);
+    if(o.bd) g61Borders(ws,r,c1,c2,o.bd);
+    if(o.dv) ws.dataValidations.add(c1===c2?cell.address:`${cell.address}:${colLetter(c2)}${r}`, o.dv);
+    return cell;
+  };
+  const listDV=ref=>({type:'list',allowBlank:true,formulae:[ref]});
+  const FRL=cbFrLabels();
+
+  /* Cartouche */
+  put(1,30,30,'FICHE DE CONTRÔLE N° FC - GEO - 61 Courbe',{h:'right'});
+  put(2,1,1,'RER',{bold:true});
+  put(3,1,30,'CONTRÔLE DU GAUCHE EN COURBE SUR LE RER',{bold:true,size:14,h:'center'});
+  put(4,1,6,`Feuille numéro ${sheetIdx+1}`,{h:'center',bd:'mmmm'});
+  put(5,1,3,'G. O.',{h:'center',bd:'mmmm'});
+  put(5,4,6,h.go,{h:'center',bd:'mmmm',fill:XC.input,dv:listDV('$AE$4:$AE$7')});
+  put(5,9,12,'Interstation',{h:'center',bd:'mmmm'});
+  put(5,13,18,h.interstation,{h:'center',bd:'mmmm'});
+  put(6,1,3,'Ligne ',{h:'center',bd:'mmmm'});
+  put(6,4,6,h.ligne,{h:'center',bd:'mmmm',fill:XC.input,dv:listDV('$AF$4:$AF$7')});
+  put(6,11,13,'PK origine',{h:'center',bd:'mmmm'});
+  put(6,14,17,h.pkOrigine,{h:'center',bd:'mmmm'});
+  put(7,1,3,'VOIE N°',{h:'center',bd:'mmmm'});
+  put(7,4,6,h.voie,{h:'center',bd:'mmmm'});
+  put(7,11,13,'PK fin',{h:'center',bd:'mmmm'});
+  put(7,14,17,h.pkFin,{h:'center',bd:'mmmm'});
+
+  /* Légende des fonds — propre à la fiche Courbe */
+  put(8,1,30,CB_LEGEND,{h:'left'});
+
+  put(9,1,17,`Si la file de référence FR est la file ${FRL.a}, cocher la case  `,{h:'right',bd:'   m'});
+  put(9,18,18,stateCourbe.fileRef==='a'?'X':'',{h:'center',bold:true,bd:'mmmm'});
+  put(9,21,26,'Numéro de la règle',{h:'center',bd:'mmmm'});
+  put(9,27,29,h.numRegle,{h:'center',bd:'mmmm'});
+  put(10,1,17,`Si la file de référence FR est la file ${FRL.b}, cocher la case  `,{h:'right',bd:'   m'});
+  put(10,18,18,stateCourbe.fileRef==='b'?'X':'',{h:'center',bold:true,bd:'mmmm'});
+  put(10,21,26,'Relevé avant bourrage',{h:'center',bd:'mmmm'});
+  put(10,27,28,h.releve==='Avant bourrage'?'Oui':'',{h:'center',bd:'mmmm',fill:XC.input});
+  put(11,10,18,{formula:'IF(S11=1,"","Choisissez une file de reference")'},{h:'right',bold:true,color:'FFFF0000'});
+  put(11,21,26,'Relevé après bourrage',{h:'center',bd:'mmmm'});
+  put(11,27,28,h.releve==='Après bourrage'?'Oui':'',{h:'center',bd:'mmmm',fill:XC.input});
+  ws.dataValidations.add('AA10:AA11', listDV('$AE$10'));
+  ws.dataValidations.add('AB11', listDV('$AE$10'));
+
+  /* Notes : (1) encadrée, puis (2)(3) et (4)(5) groupées comme sur l'original */
+  put(12,1,30,cbNote1(),{bold:true,h:'center',bd:'dddd'});
+  put(13,1,1,`(2) ${CB_NOTES[0]}     (3) ${CB_NOTES[1]}`,{h:'left'});
+  put(14,1,1,`(4) ${CB_NOTES[2]}     (5) ${CB_NOTES[3]}`,{h:'left'});
+
+  /* En-tête du tableau */
+  const M={style:'medium',color:{argb:XC.black}};
+  CB.heads.forEach(([c1,c2,txt])=>{
+    ws.mergeCells(15,c1,19,c2);
+    const cell=ws.getCell(15,c1);
+    cell.value=txt;
+    cell.font={name:XF.sans,size:10,bold:true,color:{argb:XC.black}};
+    cell.alignment={horizontal:'center',vertical:'center',wrapText:true};
+    cell.border={top:M,bottom:M,left:M,right:M};
+  });
+
+  /* Lignes de relevé */
+  const R0=CB.firstRow, last=sheetRows.length-1;
+  const TH=colLetter(9), D=colLetter(12), GT3=colLetter(15), GM3=colLetter(19),
+        GT18=colLetter(24), GM18=colLetter(28);
+  /* Référence continue d'une feuille à l'autre (cf. fiche alignement). */
+  const ref=(gi,col)=>{
+    const sh=Math.floor(gi/GEO61_PTS), row=R0+(gi%GEO61_PTS);
+    if(sh===sheetIdx) return `${col}${row}`;
+    return `'Gauche en courbe ${sh+1}'!${col}${row}`;
+  };
+  const guard = (cells, expr) =>
+    `IF($S$11=1,IF(OR(${cells.map(c=>`COUNTBLANK(${c})=1`).join(',')})," ",${expr})," ")`;
+  sheetRows.forEach((row,i)=>{
+    const gi=base+i, r=R0+i;
+    // haut medium sur la 1re ligne, bas medium sur la dernière : cadre du tableau
+    const tb = (i===0 ? 'mt' : i===last ? 'tm' : 'tt');
+    const vals=[
+      row.pk,
+      num(row.ecartement)!==null?num(row.ecartement):row.ecartement,
+      cbLabelTh(gi)+'  =',
+      num(row.dth)!==null?num(row.dth):row.dth,
+      cbLabel(gi)+'  =',
+      num(row.devers)!==null?num(row.devers):row.devers,
+      cbOp(gi,1,true),
+      gi>=1 ? {formula:guard([`${TH}${r}`,ref(gi-1,TH)], `${TH}${r}-${ref(gi-1,TH)}`)} : null,
+      cbOp(gi,1,false),
+      gi>=1 ? {formula:guard([`${D}${r}`,ref(gi-1,D)], `${D}${r}-${ref(gi-1,D)}`)} : null,
+      gi>=1 ? {formula:guard([`${TH}${r}`,ref(gi-1,TH),`${D}${r}`,ref(gi-1,D)], `${GM3}${r}-${GT3}${r}`)} : null,
+      cbOp(gi,6,true),
+      gi>=6 ? {formula:guard([`${TH}${r}`,ref(gi-6,TH)], `${TH}${r}-${ref(gi-6,TH)}`)} : null,
+      cbOp(gi,6,false),
+      gi>=6 ? {formula:guard([`${D}${r}`,ref(gi-6,D)], `${D}${r}-${ref(gi-6,D)}`)} : null,
+      gi>=6 ? {formula:guard([`${TH}${r}`,ref(gi-6,TH),`${D}${r}`,ref(gi-6,D)], `${GM18}${r}-${GT18}${r}`)} : null
+    ];
+    CB.blocks.forEach((b,bi)=>{
+      put(r,b.c1,b.c2, vals[bi]===null?undefined:vals[bi], {
+        h: b.align===null ? undefined : 'center',
+        bold: !!b.bold,
+        bd: tb + b.lr,
+        fill: b.fill==='theo' ? XC.input : b.fill==='calc' ? XC.calc : undefined
+      });
+    });
+    ws.getRow(r).height = (i===0 ? 15 : 16.5);
+  });
+
+  /* Zone d'aide, police blanche */
+  const white={name:XF.sans,size:10,color:{argb:XC.white}};
+  const hid=(a,v,f)=>{ const c=ws.getCell(a); c.value=v; c.font=white; if(f) c.numFmt=f; };
+  hid('AE5','Ligne A'); hid('AF5','A'); hid('AE6','Ligne B'); hid('AF6','B');
+  hid('AE7','Ligne D'); hid('AF7','D'); hid('AE9','Oui'); hid('AE10','Oui');
+  hid('S9',{formula:'COUNTBLANK(R9)'});
+  hid('S10',{formula:'COUNTBLANK(R10)'});
+  hid('S11',{formula:'SUM(S9:S10)'});
+  ws.getCell('S11').alignment={horizontal:'center',vertical:'bottom'};
+  ws.getCell('R9').value  = stateCourbe.fileRef==='a'?'X':null;
+  ws.getCell('R10').value = stateCourbe.fileRef==='b'?'X':null;
+  // le compteur de cellules vides porte sur le dévers MESURÉ (colonne L), comme l'original
+  for(let i=0;i<sheetRows.length;i++) hid(`AE${R0+i}`,{formula:`COUNTBLANK(${D}${R0+i})`});
+  hid('AF47',{formula:`SUM(AE${R0}:AE${R0+sheetRows.length-1})`});
+  hid('AF49',{formula:'TODAY()'},'[$-409]m/d/yyyy');
+
+  /* Pied */
+  const DATEFMT='[$-40C]d\\ mmmm\\ yyyy;@';
+  put(48,1,2,'Fait le :',{h:'right'});
+  put(48,3,9,signerDate('courbe','realise'),{numFmt:DATEFMT,bd:' d d',fill:XC.input,dv:listDV('$AF$48:$AF$49')});
+  put(48,10,12,'Vérifié le :',{h:'right',bd:'  d '});
+  put(48,13,17,signerDate('courbe','visa'),{numFmt:DATEFMT,bd:' d d',fill:XC.input,dv:listDV('$AF$48:$AF$49')});
+  put(48,18,20,'Commentaire:',{bd:'  d '});
+  put(48,21,30,stateCourbe.observations,{bd:' d  '});
+  put(49,1,1,'Par :');
+  put(49,3,9,signerName('courbe','realise'),{bd:'dd d'});
+  put(49,10,11,'Par :',{h:'right',bd:'  d '});
+  put(49,12,17,signerName('courbe','visa'),{bd:' d d'});
+  put(49,18,30,'',{bd:' dd '});
+  put(50,1,1,'Signature');
+  put(50,10,12,'Signature');
+  put(50,18,30,'',{bd:'ddd '});
+  put(51,18,30,'',{bd:'ddd '});
+
+  /* Traits verticaux isolés présents sur l'original (séparateurs de zones). */
+  g61Borders(ws,5,19,19,'  m ');
+  g61Borders(ws,14,20,20,' m  ');
+  g61Borders(ws,14,21,21,' m  ');
+  g61Borders(ws,50,9,9,'   d');
+  g61Borders(ws,51,9,9,'   d');
+
+  const H={1:12.75,2:12.75,3:18,4:13.5,5:13.5,6:13.5,7:13.5,8:12,9:13.5,10:13.5,11:13.5,
+           12:12.75,13:13.5,14:13.5,15:15,16:15,17:15,18:15,19:15,
+           47:6,48:12.75,49:12.75,50:12.75,51:12.75};
+  Object.entries(H).forEach(([r,v])=>{ ws.getRow(Number(r)).height=v; });
+
+  ws.pageSetup={ paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:1,
+    printArea:'A1:AD55',
+    margins:{left:0.1965,right:0.1965,top:0.1965,bottom:0.1965,header:0,footer:0} };
+}
+
 async function exportXlsx(tabKey, csvFallback){
   if(typeof ExcelJS === 'undefined'){
     // Pas de réseau pour charger la librairie (cas fréquent sur chantier) : repli automatique en CSV.
@@ -2220,11 +2529,20 @@ async function exportXlsx(tabKey, csvFallback){
   }
   const wb = new ExcelJS.Workbook();
   wb.creator = 'FCQ Digital'; wb.created = new Date();
-  const names = {mad:['FC-MAD-ADV','FC-MAD-ADV.xlsx'], sc:['FC-Sous-couche','FC-SOUS-COUCHE.xlsx'], pilo:['FC-Pilotis','FC-PILOTIS.xlsx'], geo61:['Gauche','FC-GEO-61.xlsx']};
+  const names = {mad:['FC-MAD-ADV','FC-MAD-ADV.xlsx'], sc:['FC-Sous-couche','FC-SOUS-COUCHE.xlsx'], pilo:['FC-Pilotis','FC-PILOTIS.xlsx'], geo61:['Gauche','FC-GEO-61.xlsx'], courbe:['Gauche en courbe 1','FC-GEO-61-COURBE.xlsx']};
   const [sheet, filename] = names[tabKey] || names.sc;
   // FC-GEO-61 a sa propre géométrie (réplique de la fiche RATP) et se pagine en autant
   // d'onglets « Gauche », « Gauche (2) »… que de feuilles de 27 points, comme le fichier source.
-  if(tabKey==='geo61'){
+  if(tabKey==='courbe'){
+    if(!stateCourbe.fileRef && !confirm(
+      "Aucune file de référence (FR) n'est choisie.\n\nLes colonnes calculées resteront vides "+
+      "dans le classeur : leurs formules sont conditionnées à ce choix, comme sur la fiche "+
+      "papier.\n\nExporter quand même ?")) return;
+    const n = cbSheetCount();
+    for(let k=0;k<n;k++){
+      buildCourbeSheet(wb.addWorksheet(k===0?'Gauche en courbe 1':`Gauche en courbe ${k+1}`), wb, k);
+    }
+  } else if(tabKey==='geo61'){
     // Garde de la fiche : sans file de référence, S11 vaut 2 et TOUTES les formules de gauche
     // renvoient un espace. Le classeur est correct mais paraît vide — on prévient avant.
     if(!stateGeo61.fileRef && !confirm(
@@ -2247,7 +2565,7 @@ async function exportXlsx(tabKey, csvFallback){
 
 const decisionState = {}; // tabKey -> {override, signatures:{realise,visa}}
 const docIds = {};
-const DOC_REFS = {mad:'FC-MAD-ADV', sc:'FC-BALL', pilo:'FC-PILO14', geo61:'FC-GEO-61'};
+const DOC_REFS = {mad:'FC-MAD-ADV', sc:'FC-BALL', pilo:'FC-PILO14', geo61:'FC-GEO-61', courbe:'FC-GEO-61C'};
 function docId(tabKey){
   if(!docIds[tabKey]){
     const d = new Date();
@@ -2283,7 +2601,7 @@ function refreshPrintDecision(tabKey){
   const pd = document.getElementById(`print-decision-${tabKey}`);
   if(pd) pd.innerHTML = `Décision : <strong style="color:${decisionColor(tabKey)}">${decisionLabel(tabKey)}</strong>`;
 }
-function stateFor(tabKey){ return tabKey==='mad' ? stateMad : tabKey==='sc' ? stateSC : tabKey==='geo61' ? stateGeo61 : statePilo; }
+function stateFor(tabKey){ return tabKey==='mad' ? stateMad : tabKey==='sc' ? stateSC : tabKey==='geo61' ? stateGeo61 : tabKey==='courbe' ? stateCourbe : statePilo; }
 
 function signatureCard(tabKey, slotKey, title){
   const d = ensureDecisionState(tabKey);
@@ -2449,16 +2767,48 @@ function renderGeo61(container){
   rw.appendChild(pillToggle(['Avant bourrage','Après bourrage'], h.releve, v=>{ h.releve=v; }));
   p1.appendChild(rw);
 
+  /* Repérage des files : en courbe on dit extérieure/intérieure, en alignement gauche/droite */
+  const md = el('div',{style:'margin-top:12px'});
+  md.appendChild(el('label',{html:'Repérage des files'}));
+  md.appendChild(pillToggle(['Extérieure / Intérieure','Gauche / Droite'],
+    stateGeo61.frMode==='gauchedroite'?'Gauche / Droite':'Extérieure / Intérieure', v=>{
+      const nv = v==='Gauche / Droite'?'gauchedroite':'extint';
+      if(nv===stateGeo61.frMode) return;
+      stateGeo61.frMode = nv;   // le choix déjà fait (1re ou 2e case) est conservé
+      renderGeo61(container);
+    }));
+  p1.appendChild(md);
+
   /* File de référence — garde de calcul, exactement comme la fiche (S11) */
+  const L = geo61FrLabels();
   const fr = el('div',{style:'margin-top:12px'});
   fr.appendChild(el('label',{html:'File de référence (FR)'}));
-  const cur = stateGeo61.fileRef==='ext'?'Extérieure':stateGeo61.fileRef==='int'?'Intérieure':'';
-  fr.appendChild(pillToggle(['Extérieure','Intérieure'], cur, v=>{
-    stateGeo61.fileRef = v==='Extérieure'?'ext':v==='Intérieure'?'int':'';
+  const cur = stateGeo61.fileRef==='a'?L.aCap:stateGeo61.fileRef==='b'?L.bCap:'';
+  fr.appendChild(pillToggle([L.aCap,L.bCap], cur, v=>{
+    stateGeo61.fileRef = v===L.aCap?'a':v===L.bCap?'b':'';
     renderGeo61(container); // les colonnes calculées s'activent ou se vident en bloc
   }));
   if(!stateGeo61.fileRef) fr.appendChild(el('div',{class:'fileref-warn', html:'Choisissez une file de référence'}));
   p1.appendChild(fr);
+
+  /* Sens de chaînage des PK */
+  const sens = el('div',{style:'margin-top:12px'});
+  sens.appendChild(el('label',{html:'Sens des PK (pas de 3 m)'}));
+  const sensRow = el('div',{class:'sheet-bar', style:'margin-top:0;padding-top:0;border-top:none'});
+  sensRow.appendChild(pillToggle(['Croissant','Décroissant'],
+    stateGeo61.pkSens==='decroissant'?'Décroissant':'Croissant', v=>{
+      stateGeo61.pkSens = v==='Décroissant'?'decroissant':'croissant';
+    }));
+  const rechain = el('button',{class:'btn', html:'Rechaîner les PK'});
+  rechain.addEventListener('click', ()=>{
+    if(geo61RechainAll()) renderGeo61(container);
+    else alert('Aucun PK interprétable à partir duquel chaîner.\nSaisissez un PK (ex. 283.298) sur une ligne.');
+  });
+  sensRow.appendChild(rechain);
+  sens.appendChild(sensRow);
+  sens.appendChild(el('div',{class:'paste-hint',style:'margin:6px 0 0',
+    html:'Les PK restent modifiables un à un : le chaînage ne se déclenche qu\'en quittant un champ PK, et seulement vers le bas.'}));
+  p1.appendChild(sens);
 
   /* Feuilles : la fiche est paginée par blocs de 27 points. */
   const sh = el('div',{class:'sheet-bar'});
@@ -2482,7 +2832,7 @@ function renderGeo61(container){
   /* Relevés */
   const p2 = el('div',{class:'panel'});
   p2.appendChild(el('h2',{html:'<span class="badge badge-gold">A</span>Relevés'}));
-  p2.appendChild(notesCallout(GEO61_NOTES));
+  p2.appendChild(notesCallout([geo61Note1(), GEO61_NOTES[1], GEO61_NOTES[2]]));
   p2.appendChild(el('div',{class:'paste-hint',
     html:'Astuce : sélectionnez un bloc de cellules dans Excel et collez-le (Ctrl+V) dans une cellule du tableau — un aperçu permet de vérifier l\'alignement des colonnes avant validation. Saisir un PK puis quitter le champ chaîne les suivants de 3 m en 3 m.'}));
 
@@ -2529,14 +2879,15 @@ function renderGeo61(container){
     inpEc.addEventListener('input', e=>{ r.ecartement=e.target.value; });
     tdEc.appendChild(inpEc); tr.appendChild(tdEc);
     tr.appendChild(el('td',{class:'geo-lbl pt-lbl', html: geo61Label(i)+'='}));
+    // Dévers : valeur signée (+ si la file de référence est plus basse, note 2) → bouton ±
     const tdD = el('td');
-    const inpD = el('input',{type:'text', value:r.devers});
-    inpD.setAttribute('inputmode','decimal'); inpD.classList.add('num-cell');
+    const sig = signedNumInput(r.devers, v=>{ r.devers=v; refreshGeo61Calc(tbody); });
+    const inpD = sig.input;
     inpD.dataset.key='devers';
     wireCell(inpD, 'geo61', i, 2);
     geo61WirePaste(inpD, 2, container);
     inpD.addEventListener('input', e=>{ r.devers=e.target.value; refreshGeo61Calc(tbody); });
-    tdD.appendChild(inpD); tr.appendChild(tdD);
+    tdD.appendChild(sig.wrap); tr.appendChild(tdD);
     tr.appendChild(el('td',{class:'geo-lbl op3', html: geo61Lbl3(i)}));
     tr.appendChild(el('td',{class:'calc-cell g3'}));
     tr.appendChild(el('td',{class:'geo-lbl op18', html: geo61Lbl18(i)}));
@@ -2587,7 +2938,9 @@ function refreshGeo61PK(tbody){
 function exportGeo61(){
   const rows=[['Champ','Valeur']];
   Object.entries(stateGeo61.header).forEach(([k,v])=>rows.push([k,v]));
-  rows.push(['File de référence', stateGeo61.fileRef==='ext'?'Extérieure':stateGeo61.fileRef==='int'?'Intérieure':'']);
+  const FRL=geo61FrLabels();
+  rows.push(['File de référence', stateGeo61.fileRef==='a'?FRL.aCap:stateGeo61.fileRef==='b'?FRL.bCap:'']);
+  rows.push(['Sens des PK', stateGeo61.pkSens]);
   rows.push([]);
   rows.push(['Feuille','PK','Écartement (mm)','Point','Dévers D','Opération 3 m','Gauche 3 m','Opération 18 m','Gauche 18 m']);
   stateGeo61.rows.forEach((r,i)=>{
@@ -2600,11 +2953,296 @@ function exportGeo61(){
   downloadCSV('FC-GEO-61.csv', rows);
 }
 
+
+/* ==========================================================
+   FC-GEO-61 Courbe — Contrôle du gauche EN COURBE sur le RER
+   Fiche distincte de FC-GEO-61 (alignement) : elle confronte le relevé au PROJET.
+   Métier :
+     · Dth = dévers théorique (projet), saisi ; D = dévers mesuré, saisi
+     · Gauche théorique  3 m = Dth(n) − Dth(n−1)      18 m = Dth(n) − Dth(n−6)
+     · Gauche mesuré     3 m = D(n) − D(n−1)          18 m = D(n) − D(n−6)
+     · Écart = gauche mesuré − gauche théorique (note 5)
+     · AUCUNE valeur absolue : le signe est conservé (note 4) — c'est l'inverse de la fiche
+       alignement, où la note (3) impose un résultat positif. Seul le critère d'acceptation
+       porte sur la valeur absolue de l'écart.
+     · même garde que l'autre fiche : rien ne se calcule sans file de référence
+   ========================================================== */
+const CB_LEGEND = 'Blanc = relevé terrain          Bleu = valeur théorique (projet)          Jaune = calcul automatique          Jaune en gras = écart, résultat du contrôle';
+const CB_NOTES = [
+  "Pour le dévers utiliser le signe + si la file de référence est plus basse",
+  "Les parenthèses désignent la valeur théorique au même repère : (A1) et A1 sont le même point",
+  "Gauches et écarts algébriques : le signe est conservé.",
+  "Écart = gauche mesuré − gauche théorique ; le critère porte sur sa valeur absolue"
+];
+function cbNewRow(){ return {id:uid(), pk:'', ecartement:'', dth:'', devers:''}; }
+const cbCols = [['pk','PK','text'],['ecartement','Écartement (mm)','number'],
+                ['dth','Dévers théorique Dth','number'],['devers','Dévers mesuré D','number']];
+const stateCourbe = {
+  header:{go:'', ligne:'', voie:'', interstation:'', pkOrigine:'', pkFin:'', numRegle:'', releve:''},
+  frMode:'extint', fileRef:'', pkSens:'croissant',
+  tol3:null, tol18:null,
+  rows: Array.from({length:GEO61_PTS}, cbNewRow),
+  observations:''
+};
+function cbFrLabels(){ return GEO61_FR_LABELS[stateCourbe.frMode] || GEO61_FR_LABELS.extint; }
+function cbNote1(){
+  return stateCourbe.frMode==='gauchedroite'
+    ? "Afin d'éviter toute confusion entre file gauche et file droite, Il est préconisé de faire le relevé face au train"
+    : "Afin d'éviter toute confusion avec les files intérieure et extérieure, Il est préconisé de faire le relevé face au train";
+}
+function cbSheetCount(){ return Math.max(1, Math.ceil(stateCourbe.rows.length / GEO61_PTS)); }
+function cbSheetOf(i){ return Math.floor(i / GEO61_PTS); }
+function cbSameSheet(i,j){ return cbSheetOf(i)===cbSheetOf(j); }
+function cbAddSheet(){ for(let k=0;k<GEO61_PTS;k++) stateCourbe.rows.push(cbNewRow()); }
+function cbRemoveLastSheet(){ if(cbSheetCount()>1) stateCourbe.rows.splice((cbSheetCount()-1)*GEO61_PTS); }
+function cbPadToSheets(){ while(stateCourbe.rows.length % GEO61_PTS !== 0) stateCourbe.rows.push(cbNewRow()); }
+function cbLabel(i){ return GEO61_LETTERS[i % GEO61_PTS] + (cbSheetOf(i)+1); }
+function cbLabelTh(i){ return '('+cbLabel(i)+')'; }                       // parenthèses = théorique (note 3)
+function cbOp(i, span, th){
+  if(i<span) return '';        // la voie est continue : l'opération peut franchir une feuille
+  const a = th?cbLabelTh(i-span):cbLabel(i-span), b = th?cbLabelTh(i):cbLabel(i);
+  return `${a} - ${b}  =`;
+}
+/* Différence algébrique entre deux relevés d'un même champ. Signe conservé. */
+function cbDiff(i, span, key){
+  if(!stateCourbe.fileRef) return null;
+  if(i<span) return null;      // continuité assurée d'une feuille à l'autre
+  const a = num(stateCourbe.rows[i][key]), b = num(stateCourbe.rows[i-span][key]);
+  if(a===null || b===null) return null;
+  return Math.round((a-b)*1000)/1000;
+}
+function cbGaucheTh(i, span){ return cbDiff(i, span, 'dth'); }
+function cbGaucheMes(i, span){ return cbDiff(i, span, 'devers'); }
+function cbEcart(i, span){
+  const m = cbGaucheMes(i, span), t = cbGaucheTh(i, span);
+  if(m===null || t===null) return null;
+  return Math.round((m-t)*1000)/1000;
+}
+/* Le critère porte sur la VALEUR ABSOLUE de l'écart (note 5), pas sur l'écart signé. */
+function cbEcartStatus(i, span){
+  const e = cbEcart(i, span);
+  if(e===null) return null;
+  const lim = span===1 ? stateCourbe.tol3 : stateCourbe.tol18;
+  return lim ? Math.abs(e) <= lim : null;
+}
+function countAnomaliesCourbe(){
+  let n=0;
+  for(let i=0;i<stateCourbe.rows.length;i++)
+    if(cbEcartStatus(i,1)===false || cbEcartStatus(i,6)===false) n++;
+  return n;
+}
+function cbChainPK(from){
+  const model = parsePK(stateCourbe.rows[from].pk);
+  if(!model) return false;
+  const pas = stateCourbe.pkSens==='decroissant' ? -3 : 3;
+  for(let i=from+1;i<stateCourbe.rows.length;i++){
+    const m = model.metres + pas*(i-from);
+    if(m<0) break;
+    stateCourbe.rows[i].pk = formatPK(model, m);
+  }
+  return true;
+}
+function cbRechainAll(){
+  const i = stateCourbe.rows.findIndex(r=>parsePK(r.pk));
+  return i<0 ? false : cbChainPK(i);
+}
+
+function renderCourbe(container){
+  detachStaleListeners(container);
+  container.innerHTML='';
+  const h = stateCourbe.header;
+
+  const p1 = el('div',{class:'panel'});
+  p1.appendChild(el('h2',{html:'Identification'}));
+  const grid = el('div',{class:'field-grid'});
+  [['go','G. O.'],['ligne','Ligne'],['voie','Voie n°'],['interstation','Interstation'],
+   ['pkOrigine','PK origine'],['pkFin','PK fin'],['numRegle','Numéro de la règle']].forEach(([k,label])=>{
+    const w=el('div'); w.appendChild(el('label',{html:label}));
+    const inp=el('input',{type:'text', value:h[k]});
+    inp.addEventListener('input', e=>{ h[k]=e.target.value; });
+    w.appendChild(inp); grid.appendChild(w);
+  });
+  p1.appendChild(grid);
+
+  const rw=el('div',{style:'margin-top:12px'});
+  rw.appendChild(el('label',{html:'Relevé'}));
+  rw.appendChild(pillToggle(['Avant bourrage','Après bourrage'], h.releve, v=>{ h.releve=v; }));
+  p1.appendChild(rw);
+
+  const md=el('div',{style:'margin-top:12px'});
+  md.appendChild(el('label',{html:'Repérage des files'}));
+  md.appendChild(pillToggle(['Extérieure / Intérieure','Gauche / Droite'],
+    stateCourbe.frMode==='gauchedroite'?'Gauche / Droite':'Extérieure / Intérieure', v=>{
+      const nv=v==='Gauche / Droite'?'gauchedroite':'extint';
+      if(nv===stateCourbe.frMode) return;
+      stateCourbe.frMode=nv; renderCourbe(container);
+    }));
+  p1.appendChild(md);
+
+  const L=cbFrLabels();
+  const fr=el('div',{style:'margin-top:12px'});
+  fr.appendChild(el('label',{html:'File de référence (FR)'}));
+  fr.appendChild(pillToggle([L.aCap,L.bCap],
+    stateCourbe.fileRef==='a'?L.aCap:stateCourbe.fileRef==='b'?L.bCap:'', v=>{
+      stateCourbe.fileRef = v===L.aCap?'a':v===L.bCap?'b':'';
+      renderCourbe(container);
+    }));
+  if(!stateCourbe.fileRef) fr.appendChild(el('div',{class:'fileref-warn', html:'Choisissez une file de référence'}));
+  p1.appendChild(fr);
+
+  const sens=el('div',{style:'margin-top:12px'});
+  sens.appendChild(el('label',{html:'Sens des PK (pas de 3 m)'}));
+  const sr=el('div',{class:'sheet-bar', style:'margin-top:0;padding-top:0;border-top:none'});
+  sr.appendChild(pillToggle(['Croissant','Décroissant'],
+    stateCourbe.pkSens==='decroissant'?'Décroissant':'Croissant', v=>{ stateCourbe.pkSens=v==='Décroissant'?'decroissant':'croissant'; }));
+  const rc=el('button',{class:'btn', html:'Rechaîner les PK'});
+  rc.addEventListener('click', ()=>{ if(cbRechainAll()) renderCourbe(container); else alert('Aucun PK interprétable à partir duquel chaîner.'); });
+  sr.appendChild(rc);
+  sens.appendChild(sr);
+  p1.appendChild(sens);
+
+  const sh=el('div',{class:'sheet-bar'});
+  sh.appendChild(el('span',{class:'sheet-count', html:`${cbSheetCount()} feuille(s) — ${stateCourbe.rows.length} points`}));
+  const add=el('button',{class:'btn', html:'+ Ajouter une feuille'});
+  add.addEventListener('click', ()=>{ cbAddSheet(); renderCourbe(container); });
+  sh.appendChild(add);
+  if(cbSheetCount()>1){
+    const del=el('button',{class:'btn', html:'− Retirer la dernière'});
+    del.addEventListener('click', ()=>{
+      const last=stateCourbe.rows.slice((cbSheetCount()-1)*GEO61_PTS);
+      if(last.some(r=>r.pk||r.ecartement||r.dth||r.devers) && !confirm('La dernière feuille contient des relevés. La retirer ?')) return;
+      cbRemoveLastSheet(); renderCourbe(container);
+    });
+    sh.appendChild(del);
+  }
+  p1.appendChild(sh);
+  container.appendChild(p1);
+
+  /* Relevés */
+  const p2=el('div',{class:'panel'});
+  p2.appendChild(el('h2',{html:'<span class="badge badge-gold">A</span>Relevés'}));
+  p2.appendChild(el('div',{class:'cb-legend', html:
+    '<span class="lg lg-terrain"></span>relevé terrain'+
+    '<span class="lg lg-theo"></span>valeur théorique (projet)'+
+    '<span class="lg lg-calc"></span>calcul automatique'+
+    '<span class="lg lg-ecart"></span>écart — résultat du contrôle'}));
+  p2.appendChild(notesCallout([cbNote1(), ...CB_NOTES]));
+  p2.appendChild(el('div',{class:'paste-hint',
+    html:'Collage Excel (Ctrl+V), chaînage des PK et bouton ± pour les valeurs négatives fonctionnent comme sur la fiche alignement.'}));
+
+  const table=el('table');
+  const thead=el('thead'), trh=el('tr');
+  ['P K<br><small>tous les 3 m</small>','Écartement<br><small>mesuré (mm)</small>','Point',
+   'Dévers théorique<br><small>Dth (mm)</small>','Point','Dévers mesuré<br><small>D (mm) (2)</small>',
+   'Opération','Gauche théorique<br>3 m','Opération','Gauche mesuré<br>3 m','Écart<br>3 m (5)',
+   'Opération','Gauche théorique<br>18 m','Opération','Gauche mesuré<br>18 m','Écart<br>18 m (5)'
+  ].forEach(t=>trh.appendChild(el('th',{html:t})));
+  thead.appendChild(trh); table.appendChild(thead);
+
+  const tbody=el('tbody');
+  stateCourbe.rows.forEach((r,i)=>{
+    if(i % GEO61_PTS === 0){
+      const sep=el('tr',{class:'sheet-sep'});
+      sep.appendChild(el('td',{colspan:'16', html:`Feuille numéro ${cbSheetOf(i)+1}`}));
+      tbody.appendChild(sep);
+    }
+    const tr=el('tr');
+    const wirePaste=(inp,ci)=>inp.addEventListener('paste', e=>handleTablePaste(
+      e, stateCourbe.rows, cbCols, cbNewRow, +inp.dataset.row, ci,
+      ()=>{ cbPadToSheets(); renderCourbe(container); }));
+
+    // PK
+    const tdPk=el('td');
+    const inpPk=el('input',{type:'text', value:r.pk, placeholder:i===0?'Ex. : 283.298':''});
+    inpPk.dataset.key='pk'; wireCell(inpPk,'courbe',i,0); wirePaste(inpPk,0);
+    inpPk.addEventListener('input', e=>{ r.pk=e.target.value; });
+    inpPk.addEventListener('change', e=>{ r.pk=e.target.value; if(cbChainPK(i)) cbRefreshPK(tbody); });
+    tdPk.appendChild(inpPk); tr.appendChild(tdPk);
+    // Écartement
+    const tdEc=el('td');
+    const inpEc=el('input',{type:'text', value:r.ecartement});
+    inpEc.setAttribute('inputmode','decimal'); inpEc.classList.add('num-cell');
+    inpEc.dataset.key='ecartement'; wireCell(inpEc,'courbe',i,1); wirePaste(inpEc,1);
+    inpEc.addEventListener('input', e=>{ r.ecartement=e.target.value; });
+    tdEc.appendChild(inpEc); tr.appendChild(tdEc);
+    // (A1) = puis Dth (théorique → fond bleu)
+    tr.appendChild(el('td',{class:'geo-lbl lbl-th', html:cbLabelTh(i)+' ='}));
+    const tdTh=el('td',{class:'cell-theo'});
+    const sTh=signedNumInput(r.dth, v=>{ r.dth=v; cbRefreshCalc(tbody); });
+    sTh.input.dataset.key='dth'; wireCell(sTh.input,'courbe',i,2); wirePaste(sTh.input,2);
+    sTh.input.addEventListener('input', e=>{ r.dth=e.target.value; cbRefreshCalc(tbody); });
+    tdTh.appendChild(sTh.wrap); tr.appendChild(tdTh);
+    // A1 = puis D (terrain → fond blanc)
+    tr.appendChild(el('td',{class:'geo-lbl lbl-mes', html:cbLabel(i)+' ='}));
+    const tdD=el('td');
+    const sD=signedNumInput(r.devers, v=>{ r.devers=v; cbRefreshCalc(tbody); });
+    sD.input.dataset.key='devers'; wireCell(sD.input,'courbe',i,3); wirePaste(sD.input,3);
+    sD.input.addEventListener('input', e=>{ r.devers=e.target.value; cbRefreshCalc(tbody); });
+    tdD.appendChild(sD.wrap); tr.appendChild(tdD);
+    // colonnes calculées
+    tr.appendChild(el('td',{class:'geo-lbl lbl-th op-t3', html:cbOp(i,1,true)}));
+    tr.appendChild(el('td',{class:'cell-theo calc gt3'}));
+    tr.appendChild(el('td',{class:'geo-lbl lbl-calc op-m3', html:cbOp(i,1,false)}));
+    tr.appendChild(el('td',{class:'calc-cell gm3'}));
+    tr.appendChild(el('td',{class:'calc-cell ecart e3'}));
+    tr.appendChild(el('td',{class:'geo-lbl lbl-th op-t18', html:cbOp(i,6,true)}));
+    tr.appendChild(el('td',{class:'cell-theo calc gt18'}));
+    tr.appendChild(el('td',{class:'geo-lbl lbl-calc op-m18', html:cbOp(i,6,false)}));
+    tr.appendChild(el('td',{class:'calc-cell gm18'}));
+    tr.appendChild(el('td',{class:'calc-cell ecart e18'}));
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  p2.appendChild(wrapTable(table,1));
+  container.appendChild(p2);
+  cbRefreshCalc(tbody);
+  container.appendChild(decisionAndSignature('courbe', countAnomaliesCourbe(), exportCourbe));
+}
+
+function cbRefreshCalc(tbody){
+  [...tbody.querySelectorAll('tr:not(.sheet-sep)')].forEach((tr,i)=>{
+    const put=(sel,val,oob)=>{
+      const c=tr.querySelector(sel); if(!c) return;
+      c.textContent = val===null ? '' : fmtNum(val);
+      c.classList.toggle('cell-oob', oob===false);
+    };
+    put('.gt3',  cbGaucheTh(i,1));
+    put('.gm3',  cbGaucheMes(i,1));
+    put('.e3',   cbEcart(i,1),  cbEcartStatus(i,1));
+    put('.gt18', cbGaucheTh(i,6));
+    put('.gm18', cbGaucheMes(i,6));
+    put('.e18',  cbEcart(i,6),  cbEcartStatus(i,6));
+  });
+  updateDecisionInfo('courbe', countAnomaliesCourbe());
+}
+function cbRefreshPK(tbody){
+  [...tbody.querySelectorAll('tr:not(.sheet-sep)')].forEach((tr,i)=>{
+    const inp=tr.querySelector('input[data-key="pk"]');
+    if(inp && inp!==document.activeElement) inp.value=stateCourbe.rows[i].pk;
+  });
+}
+function exportCourbe(){
+  const rows=[['Champ','Valeur']];
+  Object.entries(stateCourbe.header).forEach(([k,v])=>rows.push([k,v]));
+  const L=cbFrLabels();
+  rows.push(['File de référence', stateCourbe.fileRef==='a'?L.aCap:stateCourbe.fileRef==='b'?L.bCap:'']);
+  rows.push([]);
+  rows.push(['Feuille','PK','Écartement','Point','Dth','D','Gauche th. 3m','Gauche mes. 3m','Écart 3m','Gauche th. 18m','Gauche mes. 18m','Écart 18m']);
+  stateCourbe.rows.forEach((r,i)=>rows.push([cbSheetOf(i)+1, r.pk, r.ecartement, cbLabel(i), r.dth, r.devers,
+    cbGaucheTh(i,1)??'', cbGaucheMes(i,1)??'', cbEcart(i,1)??'',
+    cbGaucheTh(i,6)??'', cbGaucheMes(i,6)??'', cbEcart(i,6)??'']));
+  rows.push([]); rows.push(['Observations', stateCourbe.observations]);
+  rows.push(['Décision (signataire)', decisionLabel('courbe')]);
+  rows.push(...signerRows('courbe'));
+  downloadCSV('FC-GEO-61-Courbe.csv', rows);
+}
+
 const TABS = [
   {key:'mad', label:'FC-MAD-ADV', render:renderMad},
   {key:'sc', label:'FC Sous-couche', render:renderSC},
   {key:'pilo', label:'FC-14 Pilotis', render:renderPilo},
   {key:'geo61', label:'FC-GEO-61 Gauche', render:renderGeo61},
+  {key:'courbe', label:'FC-GEO-61 Courbe', render:renderCourbe},
 ];
 let activeTab = 'mad';
 
@@ -2678,6 +3316,8 @@ function hasAnyData(){
   return stateSC.rows.some(rowHasData) ||
          statePilo.rows.some(rowHasData) ||
          stateGeo61.rows.some(rowHasData) ||
+         stateCourbe.rows.some(rowHasData) ||
+         Object.values(stateCourbe.header).some(v=>v!=='') ||
          Object.values(stateGeo61.header).some(v=>v!=='') ||
          Object.values(stateMad.items).some(v=>v!=='') ||
          Object.values(stateMad.header).some(v=>v!=='') ||
@@ -2734,7 +3374,7 @@ window.addEventListener('beforeunload', e=>{
 function exportSession(){
   const snapshot = {
     version:1, savedAt:new Date().toISOString(),
-    stateMad, stateSC, statePilo, stateGeo61,
+    stateMad, stateSC, statePilo, stateGeo61, stateCourbe,
     decisionState, colVisibility, docIds
   };
   const blob = new Blob([JSON.stringify(snapshot)], {type:'application/json'});
@@ -2749,6 +3389,7 @@ function importSessionFile(file){
       if(data.stateSC) Object.assign(stateSC, data.stateSC);
       if(data.statePilo) Object.assign(statePilo, data.statePilo);
       if(data.stateGeo61) Object.assign(stateGeo61, data.stateGeo61);
+      if(data.stateCourbe) Object.assign(stateCourbe, data.stateCourbe);
       if(data.decisionState) Object.assign(decisionState, data.decisionState);
       if(data.colVisibility) Object.assign(colVisibility, data.colVisibility);
       if(data.docIds) Object.assign(docIds, data.docIds);
