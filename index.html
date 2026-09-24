@@ -426,6 +426,9 @@
   .field-grid > .fw-2{grid-column:span 2;}
   .field-grid > .fw-all{grid-column:1 / -1;}
   .ar-setfolder{font-size:12px;padding:5px 12px;}
+  .ar-name{margin:2px 0 12px;} .ar-name label{display:block;}
+  .ar-name-h{font-size:11.5px;color:var(--ink-soft);margin-top:4px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .ar-reset{background:none;border:0;padding:0;font:inherit;font-size:11.5px;font-weight:700;color:var(--accent);cursor:pointer;text-decoration:underline;}
   .fcq-modal{position:fixed;inset:0;background:rgba(10,22,52,.45);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px;}
   .fcq-dialog{background:var(--panel);border-radius:18px;padding:24px 24px 20px;width:min(620px,100%);max-height:90vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.25);}
   .fcq-dialog h3{margin:0 0 4px;font-size:20px;color:var(--navy);} .fcq-dialog-hint{margin:0 0 16px;font-size:13px;color:var(--ink-soft);}
@@ -4935,7 +4938,7 @@ function decisionAndSignature(tabKey, anomalyCount, onExport){
   exportBtn.addEventListener('click', ()=>busyRun(exportBtn, ()=>exportXlsx(tabKey, onExport)));
   const printBtn = el('button',{class:'btn keep', html:'PDF', title:'Télécharger la fiche en PDF (à ouvrir pour l\u2019imprimer)'});
   printBtn.addEventListener('click', ()=>busyRun(printBtn, ()=>exportPdf(tabKey)));
-  btnRow.appendChild(archBtn); btnRow.appendChild(printBtn); btnRow.appendChild(exportBtn);
+  btnRow.appendChild(archBtn);
   wrap.appendChild(btnRow);
   return wrap;
 }
@@ -6383,7 +6386,7 @@ function applySnapshot(snap){
 }
 function newChantier(nom, periode){
   return {id:'ch-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), reseau:'rer',
-    nom, periode, ligne:'', interstation:'', voies:'', pkDebut:'', pkFin:'', secteur:'', entreprise:'', repEntreprise:'', controleur:'', dossierTeams:'',
+    nom, periode, ligne:'', interstation:'', voies:'', pkDebut:'', pkFin:'', secteur:'', entreprise:'', repEntreprise:'', controleur:'',
     fiches:TABS.map(t=>t.key), snapshot:deepCopy(BLANK), createdAt:Date.now(), updatedAt:Date.now()};
 }
 function loadStore(){
@@ -6586,8 +6589,7 @@ function openChantierForm(ch){
   const fields=[['§','Projet'],['nom','Nom du chantier *','text','Ex. : ITC RVB Branches Est'],['periode','Période','text','Ex. : Automne 2026'],['ligne','Ligne RER','select'],
     ['§','Localisation'],['interstation','Interstation','text','Ex. : Nation - Vincennes'],['voies','Voie(s)','text','Ex. : V2 ou V1, V2'],
     ['pkDebut','PK début','text','Ex. : 12.300'],['pkFin','PK fin','text','Ex. : 13.100'],['secteur','Secteur / lieu','text','Ex. : Val-de-Fontenay'],
-    ['§','Intervenants'],['entreprise','Entreprise','text','Ex. : UNIFER'],['repEntreprise','Signataire entreprise','text','Nom · « Réalisé par »'],['controleur','Signataire RATP','text','Nom · « Visa RATP »'],
-    ['§','Archivage'],['dossierTeams','Dossier Teams d\u2019archivage','text','Lien du dossier : Teams › canal › Fichiers › dossier › … › « Copier le lien »']];
+    ['§','Intervenants'],['entreprise','Entreprise','text','Ex. : UNIFER'],['repEntreprise','Signataire entreprise','text','Nom · « Réalisé par »'],['controleur','Signataire RATP','text','Nom · « Visa RATP »']];
   const inputs={};
   fields.forEach(([k,l,t,ph])=>{
     if(k==='§'){ g.appendChild(el('div',{class:'fcq-sec span2', html:l})); return; }
@@ -6597,7 +6599,7 @@ function openChantierForm(ch){
     else if(k==='nom'){ inp=el('textarea',{rows:'1', class:'fcq-grow'}); inp.value=d[k]||''; if(ph) inp.placeholder=ph;
       const grow=()=>{ inp.style.height='auto'; inp.style.height=inp.scrollHeight+'px'; }; inp.addEventListener('input',grow); setTimeout(grow,0); }
     else { inp=el('input',{type:'text', value:d[k]||''}); if(ph) inp.placeholder=ph; }
-    if(k==='nom' || k==='dossierTeams') w.classList.add('span2');
+    if(k==='nom') w.classList.add('span2');
     inputs[k]=inp; w.appendChild(inp); g.appendChild(w);
   });
   box.appendChild(g);
@@ -6607,8 +6609,6 @@ function openChantierForm(ch){
   ok.addEventListener('click',()=>{
     const v=Object.fromEntries(Object.entries(inputs).map(([k,i])=>[k,i.value.trim()]));
     if(!v.nom){ inputs.nom.focus(); inputs.nom.classList.add('input-oob'); return; }
-    if(v.dossierTeams && !/^https:\/\/\S+$/i.test(v.dossierTeams)){ inputs.dossierTeams.focus(); inputs.dossierTeams.classList.add('input-oob');
-      alert("Le dossier d'archivage doit être un lien commençant par https:// — dans Teams : canal › Fichiers › dossier › … › « Copier le lien »."); return; }
     const target = isNew ? d : store.chantiers.find(c=>c.id===ch.id);
     Object.assign(target, v, {updatedAt:Date.now()});
     if(isNew) store.chantiers.push(target);
@@ -6681,8 +6681,8 @@ function tabletName(){
   }
   return store.tablette;
 }
-function chMeta(ch){ const {id,nom,periode,ligne,interstation,voies,pkDebut,pkFin,secteur,entreprise,repEntreprise,controleur,dossierTeams,fiches}=ch;
-  return {id,nom,periode,ligne,interstation,voies,pkDebut,pkFin,secteur,entreprise,repEntreprise,controleur,dossierTeams,fiches}; }
+function chMeta(ch){ const {id,nom,periode,ligne,interstation,voies,pkDebut,pkFin,secteur,entreprise,repEntreprise,controleur,fiches}=ch;
+  return {id,nom,periode,ligne,interstation,voies,pkDebut,pkFin,secteur,entreprise,repEntreprise,controleur,fiches}; }
 function logRelais(ch, texte){ (ch.historique=ch.historique||[]).push({at:Date.now(), texte}); }
 
 /* Signatures pour le QR : codées en noir et blanc, un bit par pixel, compressées — quelques
@@ -7032,171 +7032,103 @@ function newFiche(k){
   delete decisionState[k]; delete docIds[k];
   applyChantierDefaults(ch); activeTab=k; flushChantier(); renderAll(); window.scrollTo(0,0);
 }
+/* =====================================================================================
+   ARCHIVER : une seule action, « Partager ».
+   Le nom du fichier est lisible (fiche, chantier, voie, PK, date), modifiable, et appris :
+   quand l'utilisateur le retouche, l'application retient sa façon de nommer et l'applique
+   aux fiches suivantes (les valeurs changent, la forme reste).
+   ===================================================================================== */
+const FICHE_TITLES = {mad:'Mise à disposition ADV', sc:'Sous-couche', pilo:'Pilotis', geo61:'Contrôle du gauche',
+  courbe:'Gauche en courbe', jgp:'Joints à grand permissif', trav:'Travelage'};
+const FICHE_CODES = {mad:'FC-MAD-ADV', sc:'FC', pilo:'FC-14', geo61:'FC-GEO-61', courbe:'FC-GEO-61', jgp:'FC-JT-12', trav:'FC'};   // comme les onglets : « FC Sous-couche », « FC Travelage »
+function nameValues(k){
+  const ch=currentChantier()||{}, S=STATE_REF[FICHE_STATE[k]]||{}, h=S.header||{};
+  const frDate=d=>{ const m=String(d||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?`${m[3]}-${m[2]}-${m[1]}`:''; };
+  const today=frDate(new Date().toISOString());
+  const pk = (a,b)=> a&&b ? `PK ${a} à ${b}` : a ? `PK ${a}` : '';
+  let pkv='';
+  if(k==='geo61'||k==='courbe') pkv=pk(h.pkOrigine,h.pkFin);
+  else if(k==='jgp'){ const r=(S.rows||[]).map(x=>x.pk).filter(Boolean); pkv=pk(r[0], r.length>1?r[r.length-1]:''); }
+  else pkv=pk(h.pkDebut,h.pkFin);
+  const voie=String(h.voie||'').trim();
+  return { code:FICHE_CODES[k], fiche:FICHE_TITLES[k], chantier:(ch.nom||'').trim(),
+    voie: voie ? (/^v/i.test(voie)?`Voie ${voie.replace(/^v(oie)?\s*/i,'')}`:`Voie ${voie}`) : '',
+    pk:pkv, adv: k==='mad'&&h.advNum ? `ADV ${h.advNum}` : '', date: frDate(h.date)||today };
+}
+const NAME_DEFAULT='{code} {fiche} – {chantier} – {adv} – {voie} – {pk} – {date}';
+function fillName(tpl, v){
+  let n=tpl.replace(/\{(\w+)\}/g,(_,t)=>v[t]||'');
+  n=n.replace(/(\s*[–-]\s*){2,}/g,' – ').replace(/^\s*[–-]\s*|\s*[–-]\s*$/g,'').replace(/\s{2,}/g,' ').trim();
+  return n;
+}
+/* retient la forme d'un nom retouché : chaque valeur connue redevient son repère */
+function learnName(k, typed){
+  const v=nameValues(k); let t=typed;
+  Object.entries(v).filter(([,x])=>x).sort((a,b)=>b[1].length-a[1].length).forEach(([key,x])=>{ t=t.split(x).join(`{${key}}`); });
+  (store.nameTpl=store.nameTpl||{})[k]=t; saveStore();
+}
+/* caractères interdits dans un nom de fichier (Windows, Android) : remplacés par un tiret, jamais supprimés en silence */
+function safeFileName(n){ return n.replace(/[\n\r\t]+/g,' ').replace(/\s*[\\/:*?"<>|]+\s*/g,' – ').replace(/(\s*–\s*){2,}/g,' – ').replace(/^\s*–\s*|\s*–\s*$/g,'').replace(/\s{2,}/g,' ').trim().slice(0,150) || docId(activeTab); }
 function openArchive(k){
   const ch=currentChantier(); if(!ch) return;
-  // écriture directe dans un dossier : PC uniquement. Sur tablette Android, le sélecteur ne propose que
-  // la mémoire de la tablette (OneDrive n'y figure pas) : les fiches n'arriveraient jamais dans Teams.
-  const DIRX = DIR_OK && !store.dirBlocked && !IS_MOBILE;
   const d=ensureDecisionState(k), sig=d.signatures||{};
   const signed=['realise','visa'].filter(w=>sig[w] && sig[w].dataUrl).length;
   const ov=el('div',{class:'fcq-modal'}), box=el('div',{class:'fcq-dialog rl-dialog'});
   box.appendChild(el('h3',{html:'Archiver la fiche'}));
-  box.appendChild(el('p',{class:'fcq-dialog-hint', html:`<b>${esc(ficheLabel(k))}</b> · ${esc(docId(k))} — choisissez le format, puis ${DIRX?'enregistrez dans le dossier d\u2019archivage':'partagez'}.`}));
-  const tip=el('div',{class:'ar-tip', html: DIRX
-    ? `<b>Dépôt direct :</b> choisissez une fois le dossier d\u2019archivage — le raccourci du dossier Teams, dans l\u2019Explorateur sous « OneDrive ». Les fiches y sont ensuite enregistrées directement ; OneDrive les envoie dans Teams.`
-    : !IS_MOBILE ? `<b>Enregistrer dans le dossier Teams :</b> ${SAVEAS_TIP}`
-    : `<b>Pour déposer dans le dossier du canal :</b> touchez <b>Partager</b>, choisissez <b>OneDrive</b> (et non Teams), puis le raccourci du dossier d\u2019archivage et <b>Charger</b>. <span>Teams, lui, publie toujours le fichier dans la conversation du canal. Si OneDrive n\u2019apparaît pas : fiche enregistrée sur la tablette, puis Teams › canal › Fichiers › + › Charger.</span>`});
-  box.appendChild(tip);
+  box.appendChild(el('p',{class:'fcq-dialog-hint', html:`<b>${esc(ficheLabel(k))}</b> — choisissez le format, vérifiez le nom, puis partagez.`}));
   if(signed<2) box.appendChild(el('div',{class:'rl-warn', style:'margin-bottom:12px', html: signed===0 ? 'Cette fiche n\u2019est pas encore signée.' : 'Une seule des deux signatures est présente.'}));
   let fmt='both';
   const ch3=el('div',{class:'rl-choice ar-choice'});
   const opt=(v,t,dd)=>{ const b=el('button',{class:'rl-opt'+(v===fmt?' on':''), html:`<b>${t}</b><span>${dd}</span>`}); b.addEventListener('click',()=>{ fmt=v; ch3.querySelectorAll('.rl-opt').forEach(x=>x.classList.toggle('on',x===b)); }); return b; };
   ch3.append(opt('pdf','PDF','La fiche signée, à lire et imprimer'), opt('xlsx','Excel','Le classeur, calculs compris'), opt('both','Les deux','PDF et Excel ensemble'));
   box.appendChild(ch3);
+  // nom du fichier : lisible, modifiable, appris
+  const learned=(store.nameTpl||{})[k], proposed=fillName(learned||NAME_DEFAULT, nameValues(k));
+  const nw=el('div',{class:'ar-name'});
+  nw.appendChild(el('label',{html:'Nom du fichier'}));
+  const ni=el('textarea',{rows:'2', class:'fcq-grow'}); ni.value=proposed; nw.appendChild(ni);
+  const nh=el('div',{class:'ar-name-h', html: learned ? 'Nom proposé d\u2019après votre dernière modification.' : 'Modifiable : l\u2019application retiendra votre façon de nommer.'});
+  if(learned){ const rs=el('button',{class:'ar-reset', type:'button', html:'Nom par défaut'}); rs.addEventListener('click',()=>{ ni.value=fillName(NAME_DEFAULT, nameValues(k)); delete store.nameTpl[k]; saveStore(); nh.firstChild.textContent='Nom par défaut rétabli. '; }); nh.appendChild(rs); }
+  nw.appendChild(nh); box.appendChild(nw);
+  setTimeout(()=>{ ni.style.height='auto'; ni.style.height=ni.scrollHeight+'px'; },0);
+  ni.addEventListener('input',()=>{ ni.style.height='auto'; ni.style.height=ni.scrollHeight+'px'; });
+  box.appendChild(el('div',{class:'ar-tip', html:`<b>Destination :</b> Partager › <b>Teams</b> › le canal d\u2019archivage (par exemple « Fiches signées »). Teams range la fiche dans les <b>Fichiers</b> de ce canal. La première fois, choisissez le canal : il apparaît ensuite parmi les destinations récentes.`}));
   const stage=el('div',{class:'rl-stage'}); box.appendChild(stage);
   const foot=el('div',{class:'btn-row', style:'justify-content:flex-end;margin-top:16px'});
   const close=el('button',{class:'btn', html:'Fermer'}); close.addEventListener('click',()=>ov.remove());
-  const send=el('button',{class:'btn'+(DIRX||!IS_MOBILE?'':' btn-primary'), html:'Partager'});
+  const send=el('button',{class:'btn btn-primary', html:'Partager'});
   foot.append(close, send); box.appendChild(foot);
-  const finish=(fmts, dest)=>{
-    (ch.archives=ch.archives||[]).push({key:k, docId:docId(k), at:Date.now(), formats:fmts, par:store.tablette||'', dossier:dest||''});
-    logRelais(ch, `${ficheLabel(k)} ${docId(k)} archivée${dest?` dans « ${dest} »`:''} (${fmts.join(' + ')})`); flushChantier(); saveStore();
-  };
-  const buildFiles=async ()=>{
-    const id=docId(k), buf=await buildXlsxBuffer(k), files=[];
-    if(fmt!=='xlsx') files.push(new File([await xpBuildPdf(buf, `${id}.xlsx`)], `${id}.pdf`, {type:'application/pdf'}));
-    if(fmt!=='pdf') files.push(new File([buf], `${id}.xlsx`, {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
-    return files;
-  };
-  const saveAs=el('button',{class:'btn btn-primary', html:'Enregistrer'});
-  saveAs.addEventListener('click',()=>busyRun(saveAs, async ()=>{
-    stage.innerHTML='';
-    if(!xlsxLibsReady(k)){ stage.appendChild(el('p',{class:'rl-err', html:'Modules d\u2019export indisponibles : ouvrez l\u2019application une fois avec du réseau.'})); return; }
-    const files=await buildFiles(); files.forEach(f=>triggerDownload(f, f.name));
-    finish(files.map(f=>f.name.endsWith('.pdf')?'PDF':'Excel'), '');
-    stage.appendChild(el('div',{class:'ar-done', html:`<div class="ar-ok">✓ ${files.length>1?'Fichiers envoyés':'Fichier envoyé'} à l\u2019enregistrement</div><p>${files.map(f=>`<b>${esc(f.name)}</b>`).join(', ')}. Si Windows ne vous a pas demandé le dossier, ${files.length>1?'ils sont':'il est'} dans Téléchargements : activez le réglage ci-dessus pour choisir le dossier Teams à chaque fois.</p>`}));
-    const nf=el('button',{class:'btn btn-primary', html:`Nouvelle fiche ${esc(ficheLabel(k))}`}); nf.addEventListener('click',()=>{ ov.remove(); newFiche(k); });
-    saveAs.replaceWith(nf); renderAll();
-  }));
-  const folder = !DIRX ? (ch.dossierTeams||'') : '';
-  if(!DIRX && !IS_MOBILE && !folder) foot.appendChild(saveAs);
-  if(folder){
-    send.classList.remove('btn-primary');
-    const hint=box.querySelector('.fcq-dialog-hint'); if(hint) hint.innerHTML=hint.innerHTML.replace('puis partagez.','puis enregistrez : Teams s\u2019ouvre sur le dossier du chantier.');
-    tip.innerHTML=`<b>Dossier d\u2019archivage : ${esc(folderLabel(folder))}</b><span>Un toucher enregistre la fiche et ouvre ce dossier dans Teams. Il ne reste qu\u2019à faire <b>+ › Charger › Téléchargements</b> et à choisir la fiche.</span>`;
-    // fichiers préparés à l'avance : le toucher peut alors enregistrer ET ouvrir Teams dans le même geste
-    let ready=null, fmtReady=null;
-    const prep=()=>{ ready=null; const f0=fmt; if(!xlsxLibsReady(k)) return; buildFiles().then(fs=>{ if(fmt===f0){ ready=fs; fmtReady=f0; } }).catch(()=>{}); };
-    ch3.addEventListener('click', ()=>setTimeout(prep,0)); prep();
-    const go=el('button',{class:'btn btn-primary', html:'Enregistrer et ouvrir le dossier Teams'});
-    const done=(files, openedNow)=>{
-      finish(files.map(f=>f.name.endsWith('.pdf')?'PDF':'Excel'), folderLabel(folder));
-      stage.innerHTML='';
-      stage.appendChild(el('div',{class:'ar-done', html:`<div class="ar-ok">✓ ${files.length>1?'Fiches enregistrées':'Fiche enregistrée'} sur la tablette</div>
-        <p>${files.map(f=>`<b>${esc(f.name)}</b>`).join(', ')}</p><p>Dans Teams : <b>+</b> › <b>Charger</b> › <b>Téléchargements</b> › ${files.length>1?'les deux fichiers':'le fichier'}.</p>`}));
-      const reopen=el('button',{class:'btn'+(openedNow?'':' btn-primary'), html: openedNow ? 'Rouvrir le dossier Teams' : 'Ouvrir le dossier Teams'});
-      reopen.addEventListener('click',()=>window.open(folder,'_blank','noopener'));
-      const nf=el('button',{class:'btn'+(openedNow?' btn-primary':''), html:`Nouvelle fiche ${esc(ficheLabel(k))}`}); nf.addEventListener('click',()=>{ ov.remove(); newFiche(k); });
-      go.replaceWith(reopen); send.replaceWith(nf); renderAll();
-    };
-    go.addEventListener('click', ()=>{
-      stage.innerHTML='';
-      if(!xlsxLibsReady(k)){ stage.appendChild(el('p',{class:'rl-err', html:'Modules d\u2019export indisponibles : ouvrez l\u2019application une fois avec du réseau.'})); return; }
-      if(!xlsxPreflight(k)) return;
-      if(ready && fmtReady===fmt){                      // même geste : enregistrement + ouverture du dossier
-        ready.forEach(f=>triggerDownload(f, f.name)); window.open(folder,'_blank','noopener'); done(ready, true); return;
-      }
-      busyRun(go, async ()=>{ const fs=await buildFiles(); fs.forEach(f=>triggerDownload(f, f.name)); done(fs, false); });
-    });
-    foot.appendChild(go);
-  } else if(!DIRX){
-    const def=el('button',{class:'btn ar-setfolder', html:'Définir le dossier Teams du chantier'});
-    def.addEventListener('click',()=>{ ov.remove(); openChantierForm(ch); });
-    tip.appendChild(el('div',{style:'margin-top:8px'})).appendChild(def);
-  }
-  if(DIRX){
-    const dirBtn=el('button',{class:'btn btn-primary', html:'Enregistrer dans le dossier'}), change=el('button',{class:'btn ar-change', html:'Changer de dossier'});
-    const dirInfo=el('div',{class:'ar-dir'}); tip.after(dirInfo);
-    const paint=h=>{ dirInfo.innerHTML = h ? `Dossier d\u2019archivage : <b>${esc(h.name)}</b>` : 'Aucun dossier choisi pour ce chantier.';
-      dirBtn.innerHTML = h ? `Enregistrer dans « ${esc(h.name)} »` : 'Choisir le dossier et enregistrer'; change.style.display = h ? '' : 'none'; };
-    let dirH=null; archiveDir(ch).then(h=>{ dirH=h; paint(h); });
-    const why=e=>{ const n=(e&&e.name)||'Erreur', m=(e&&e.message)||String(e);
-      const hint = location.protocol==='file:' ? 'Ouvrez l\u2019application depuis son adresse web (https://…) plutôt que depuis un fichier sur le PC.'
-                 : n==='SecurityError' ? `${BROWSER} n\u2019a pas associé la demande à votre clic : réessayez.`
-                 : n==='NotAllowedError' && /user agent or the platform/i.test(m) ? `Cette fonction ${IS_EDGE?'d\u2019Edge':'de Chrome'} est bloquée sur ce poste (règle informatique du poste, ou application ouverte depuis un fichier).`
-                 : n==='NotAllowedError' ? `L\u2019accès a été refusé : cliquez sur « Autoriser » quand ${BROWSER} le demande.`
-                 : 'Choisissez un sous-dossier ordinaire (par exemple le raccourci du dossier Teams sous « OneDrive »).';
-      if(n==='NotAllowedError' && /user agent or the platform/i.test(m)){ store.dirBlocked=true; saveStore(); }
-      if(n==='NotAllowedError' || n==='SecurityError') setTimeout(()=>{ if(!stage.querySelector('.ar-fallback')){
-          const fb=el('div',{class:'ar-fallback', html:`<p class="ar-why"><b>Solution qui marche partout :</b> ${SAVEAS_TIP}</p>`}); stage.appendChild(fb);
-          dirBtn.replaceWith(saveAs); change.style.display='none'; } },0);
-      return `<p class="rl-err">${BROWSER} n\u2019autorise pas l\u2019écriture directe dans un dossier ici.</p><p class="ar-why">${esc(hint)}<br><span>Détail technique : ${esc(n)} — ${esc(m)}</span></p>`; };
-    const pick=async ()=>{ const h=await window.showDirectoryPicker({id:'fcq-archive', mode:'readwrite'}); dirH=h; kvSet('dir:'+ch.id, h); paint(h); return h; };
-    change.addEventListener('click', async ()=>{ stage.innerHTML=''; try{ await pick(); }catch(e){ if(!e || e.name!=='AbortError') stage.innerHTML=why(e); } });
-    const doWrite=()=>busyRun(dirBtn, async ()=>{
-      if(!xlsxLibsReady(k)){ stage.appendChild(el('p',{class:'rl-err', html:'Modules d\u2019export indisponibles : ouvrez l\u2019application une fois avec du réseau.'})); return; }
-      const files=await buildFiles();
-      try{ await writeToDir(dirH, files); }catch(e){ stage.innerHTML=why(e); return; }
-      finish(files.map(f=>f.name.endsWith('.pdf')?'PDF':'Excel'), dirH.name);
-      stage.appendChild(el('div',{class:'ar-done', html:`<div class="ar-ok">✓ Enregistré dans « ${esc(dirH.name)} »</div><p>${files.map(f=>`<b>${esc(f.name)}</b>`).join(', ')} — OneDrive l${files.length>1?'es':'e'} envoie dans le dossier Teams.</p>`}));
-      const nf=el('button',{class:'btn btn-primary', html:`Nouvelle fiche ${esc(ficheLabel(k))}`}); nf.addEventListener('click',()=>{ ov.remove(); newFiche(k); });
-      dirBtn.replaceWith(nf); renderAll();
-    });
-    // Clic : le sélecteur s'ouvre AVANT toute attente (Chrome l'exige) ; l'autorisation d'écrire,
-    // si elle manque, se demande par un second clic dédié (le premier a été consommé par le sélecteur).
-    dirBtn.addEventListener('click', async ()=>{
-      stage.innerHTML='';
-      try{
-        if(!dirH) await pick();
-        let perm=await dirH.queryPermission({mode:'readwrite'});
-        if(perm!=='granted'){
-          try{ perm=await dirH.requestPermission({mode:'readwrite'}); }
-          catch(e){
-            const allow=el('button',{class:'btn btn-primary', html:`Autoriser l\u2019accès à « ${esc(dirH.name)} »`});
-            allow.addEventListener('click', async ()=>{ try{ if(await dirH.requestPermission({mode:'readwrite'})==='granted'){ stage.innerHTML=''; doWrite(); } else stage.innerHTML=why({name:'NotAllowedError',message:'autorisation refusée'}); }catch(e2){ stage.innerHTML=why(e2); } });
-            stage.appendChild(el('p',{class:'rl-info', html:`${BROWSER} demande votre accord pour écrire dans ce dossier.`})); stage.appendChild(allow); return;
-          }
-        }
-        if(perm!=='granted'){ stage.innerHTML=why({name:'NotAllowedError', message:'autorisation refusée'}); return; }
-      }catch(e){ if(e && e.name==='AbortError') return; stage.innerHTML=why(e); return; }
-      doWrite();
-    });
-    foot.insertBefore(change, send); foot.appendChild(dirBtn);
-  }
   send.addEventListener('click',()=>busyRun(send, async ()=>{
     stage.innerHTML='';
     if(!xlsxLibsReady(k)){ stage.appendChild(el('p',{class:'rl-err', html:'Modules d\u2019export indisponibles : ouvrez l\u2019application une fois avec du réseau.'})); return; }
-    const id=docId(k), buf=await buildXlsxBuffer(k);
-    const xlsx=new File([buf], `${id}.xlsx`, {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    const pdf = fmt!=='xlsx' ? new File([await xpBuildPdf(buf, `${id}.xlsx`)], `${id}.pdf`, {type:'application/pdf'}) : null;
+    if(!xlsxPreflight(k)) return;
+    const base=safeFileName(ni.value);
+    if(base!==safeFileName(proposed)) learnName(k, base);        // on apprend le nom tel qu'il est enregistré
+    ni.value=base;
+    const buf=await buildXlsxBuffer(k);
+    const xlsx=new File([buf], `${base}.xlsx`, {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const pdf = fmt!=='xlsx' ? new File([await xpBuildPdf(buf, `${base}.xlsx`)], `${base}.pdf`, {type:'application/pdf'}) : null;
     const want = fmt==='pdf'?[pdf] : fmt==='xlsx'?[xlsx] : [pdf,xlsx];
     const can = f => !!(navigator.canShare && navigator.canShare({files:f}));
-    let shared=[], saved=[];
-    // partage de tout ce que l'appareil accepte ; le reste est enregistré dans les Téléchargements
     let viaShare = can(want) ? want : (pdf && can([pdf]) ? [pdf] : []);
-    const rest = want.filter(f=>!viaShare.includes(f));
-    try{
-      if(viaShare.length){ await navigator.share({files:viaShare, title:`${ficheLabel(k)} — ${ch.nom}`, text:`${ficheLabel(k)} · ${id} · ${ch.nom}`}); shared=viaShare; }
-    }catch(e){
-      if(e && e.name==='AbortError'){ stage.appendChild(el('p',{class:'rl-info', html:'Envoi annulé : rien n\u2019a été archivé.'})); return; }
-      rest.unshift(...viaShare); viaShare=[];
-    }
-    rest.forEach(f=>{ triggerDownload(f, f.name); saved.push(f); });
+    const rest = want.filter(f=>!viaShare.includes(f)); let shared=[];
+    try{ if(viaShare.length){ await navigator.share({files:viaShare, title:base, text:base}); shared=viaShare; } }
+    catch(e){ if(e && e.name==='AbortError'){ stage.appendChild(el('p',{class:'rl-info', html:'Partage annulé : rien n\u2019a été archivé.'})); return; } rest.unshift(...viaShare); }
+    // ce que l'appareil ne sait pas partager (l'Excel sous Android) reste disponible sur l'appareil
+    rest.forEach(f=>triggerDownload(f, f.name));
     const fmts=want.map(f=>f.name.endsWith('.pdf')?'PDF':'Excel');
-    (ch.archives=ch.archives||[]).push({key:k, docId:id, at:Date.now(), formats:fmts, par:store.tablette||''});
-    logRelais(ch, `${ficheLabel(k)} ${id} archivée (${fmts.join(' + ')})`);
-    flushChantier(); saveStore();
+    (ch.archives=ch.archives||[]).push({key:k, docId:docId(k), nom:base, at:Date.now(), formats:fmts, par:store.tablette||''});
+    logRelais(ch, `${ficheLabel(k)} archivée : « ${base} » (${fmts.join(' + ')})`); flushChantier(); saveStore();
     const lines=[];
     if(shared.length) lines.push(`Partagé : <b>${shared.map(f=>f.name.endsWith('.pdf')?'PDF':'Excel').join(' + ')}</b>.`);
-    const pl=saved.length>1;
-    if(saved.length) lines.push(`Enregistré${pl?'s':''} dans les Téléchargements : <b>${saved.map(f=>esc(f.name)).join(', ')}</b>${shared.length?` — l\u2019appareil ne permet pas de partager l\u2019Excel : dans OneDrive, ouvrez le même dossier puis <b>+ → Charger</b>`:` — dans OneDrive, ouvrez le dossier d\u2019archivage puis <b>+ → Charger</b>`}.`);
-    stage.appendChild(el('div',{class:'ar-done', html:`<div class="ar-ok">✓ Fiche archivée le ${new Date().toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>${lines.map(l=>`<p>${l}</p>`).join('')}`}));
-    const nf=el('button',{class:'btn btn-primary', html:`Nouvelle fiche ${esc(ficheLabel(k))}`});
-    nf.addEventListener('click',()=>{ ov.remove(); newFiche(k); });
+    if(rest.length) lines.push(`${rest.length>1?'Ces fichiers ne peuvent':'Ce fichier ne peut'} pas être partagé${rest.length>1?'s':''} depuis cet appareil ; ${rest.length>1?'ils sont':'il est'} dans <b>Téléchargements</b> : ${rest.map(f=>`<b>${esc(f.name)}</b>`).join(', ')}.`);
+    stage.appendChild(el('div',{class:'ar-done', html:`<div class="ar-ok">✓ Fiche archivée</div>${lines.map(l=>`<p>${l}</p>`).join('')}`}));
+    const nf=el('button',{class:'btn btn-primary', html:`Nouvelle fiche ${esc(ficheLabel(k))}`}); nf.addEventListener('click',()=>{ ov.remove(); newFiche(k); });
     send.replaceWith(nf); renderAll();
   }));
   ov.appendChild(box); document.body.appendChild(ov);
 }
+
 /* bandeau d'une fiche déjà archivée */
 function applyArchiveBanner(){
   const ch=currentChantier(), content=document.getElementById('tab-content'); if(!ch||!content) return;
@@ -7214,7 +7146,7 @@ function openArchives(){
   box.appendChild(el('h3',{html:'Fiches archivées'}));
   box.appendChild(el('p',{class:'fcq-dialog-hint', html: list.length ? `${list.length} fiche${list.length>1?'s':''} envoyée${list.length>1?'s':''} dans Teams pour ce chantier. L\u2019original fait foi dans le canal.` : 'Aucune fiche archivée pour ce chantier.'}));
   if(list.length){ const t=el('div',{class:'ar-list'});
-    list.forEach(a=>t.appendChild(el('div',{class:'ar-row', html:`<span class="ar-d">${new Date(a.at).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span><span class="ar-f">${esc(ficheLabel(a.key))}</span><span class="ar-id">${esc(a.docId)}</span><span class="ar-fm">${a.formats.join(' + ')}</span>`})));
+    list.forEach(a=>t.appendChild(el('div',{class:'ar-row', html:`<span class="ar-d">${new Date(a.at).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span><span class="ar-f">${esc(a.nom||ficheLabel(a.key))}</span><span class="ar-id">${esc(a.docId)}</span><span class="ar-fm">${a.formats.join(' + ')}</span>`})));
     box.appendChild(t); }
   const foot=el('div',{class:'btn-row', style:'justify-content:flex-end;margin-top:16px'});
   const close=el('button',{class:'btn', html:'Fermer'}); close.addEventListener('click',()=>ov.remove()); foot.appendChild(close); box.appendChild(foot);
