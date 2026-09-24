@@ -172,8 +172,8 @@
 
   /* Barre de progression : collée au bandeau, comme un état de complétion */
   .progress-strip{
-    background:var(--panel);border:1px solid var(--line);border-top:none;
-    border-radius:0 0 8px 8px;padding:8px 26px 9px;margin:0 -24px 18px;
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;padding:10px 16px 11px;margin:0 0 16px;box-shadow:var(--shadow);
   }
   .progress-row{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--ink-soft);margin:0;font-weight:600;letter-spacing:0.2px;}
   .progress-pct{font-family:var(--mono);font-weight:600;color:var(--warn);}
@@ -415,6 +415,16 @@
   .ar-tip span{display:block;color:var(--ink-soft);margin-top:2px;}
   .ar-dir{font-size:12.5px;color:var(--ink-soft);margin:-4px 0 12px;padding:0 2px;} .ar-dir b{color:var(--navy);}
   .ar-why{font-size:12.5px;color:var(--ink);margin:4px 0 0;} .ar-why span{color:var(--ink-soft);font-size:11.5px;}
+  /* ---- menu du chantier ---- */
+  .cb-menu{position:absolute;z-index:1200;width:300px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 44px rgba(10,22,52,.22);padding:6px;}
+  .cb-menu-item{display:flex;flex-direction:column;gap:1px;width:100%;text-align:left;background:none;border:0;border-radius:10px;padding:9px 12px;font:inherit;cursor:pointer;color:var(--ink);}
+  .cb-menu-item:hover,.cb-menu-item:focus-visible{background:var(--teal-bg);outline:none;}
+  .cb-menu-item b{font-size:13.5px;color:var(--navy);} .cb-menu-item span{font-size:11.5px;color:var(--ink-soft);}
+  .cb-menu-sep{height:1px;background:var(--line);margin:5px 8px;}
+  .tol-edit{margin-left:auto;background:none;border:1px solid var(--line-strong);border-radius:999px;padding:4px 12px;font:inherit;font-size:12px;font-weight:700;color:var(--accent);cursor:pointer;}
+  .tol-edit:hover{border-color:var(--teal);background:var(--teal-bg);}
+  .field-grid > .fw-2{grid-column:span 2;}
+  .field-grid > .fw-all{grid-column:1 / -1;}
   .fcq-modal{position:fixed;inset:0;background:rgba(10,22,52,.45);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px;}
   .fcq-dialog{background:var(--panel);border-radius:18px;padding:24px 24px 20px;width:min(620px,100%);max-height:90vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.25);}
   .fcq-dialog h3{margin:0 0 4px;font-size:20px;color:var(--navy);} .fcq-dialog-hint{margin:0 0 16px;font-size:13px;color:var(--ink-soft);}
@@ -1413,7 +1423,7 @@ function buildHeaderCell(key, labelHtml, onClear){
   const th = el('th',{'data-colkey':key});
   th.innerHTML = labelHtml;
   if(onClear){
-    const btn = el('button',{class:'col-clear-btn', type:'button', title:'Effacer cette colonne (toutes les lignes)', html:'✕'});
+    const btn = el('button',{class:'col-clear-btn', type:'button', title:'Vider cette colonne (toutes les lignes)', 'aria-label':'Vider la colonne', html:'⌫'});
     btn.addEventListener('click', onClear);
     th.appendChild(btn);
   }
@@ -1964,7 +1974,8 @@ function renderSC(container){
     html:`<span class="seg">Épaisseur par passe : <strong>${stateSC.tolMin}–${stateSC.tolMax}&nbsp;mm</strong></span>`
       + `<span class="seg">Maillage : <strong>tous les 10&nbsp;m</strong> aux extrémités et en axe de plateforme</span>`
       + `<span class="seg">Appliquée séparément à SC n°1 et SC n°2 — hors plage = surligné en rouge</span>`
-      + `<span class="seg">Ép. ballast totale = information (Niveau avant − fond de fouille), sans tolérance propre</span>`}));
+      + `<span class="seg">Ép. ballast totale = information (Niveau avant − fond de fouille), sans tolérance propre</span>`
+      + `<button class="tol-edit" type="button" onclick="openSettings()">Modifier les tolérances</button>`}));
 
   const toolbar = el('div',{class:'table-toolbar'});
   toolbar.appendChild(el('span',{style:'font-size:11.5px;color:var(--ink-soft)', html:`${stateSC.rows.length} ligne(s) — astuce : sélectionnez un bloc de cellules dans Excel, collez-le (Ctrl+V) dans une cellule du tableau ci-dessous`}));
@@ -2026,15 +2037,19 @@ function renderSC(container){
     }));
     tr.appendChild(tdComp);
     const tdAct = el('td',{class:'row-actions'});
-    const dupBtn = el('button',{html:'Dupl.'});
+    const dupBtn = el('button',{html:'Dupl.', title:'Dupliquer la ligne', 'aria-label':'Dupliquer la ligne'});
     dupBtn.addEventListener('click', ()=>{
       const idx = stateSC.rows.indexOf(r);
       stateSC.rows.splice(idx+1, 0, {...r, id:uid()});
       renderSC(container);
     });
     tdAct.appendChild(dupBtn);
-    const delBtn = el('button',{class:'btn-delete-circle', title:'Supprimer la ligne', html:'×'});
-    delBtn.addEventListener('click', ()=>{ stateSC.rows = stateSC.rows.filter(x=>x.id!==r.id); renderSC(container); });
+    const delBtn = el('button',{class:'btn-delete-circle', title:'Supprimer la ligne', 'aria-label':'Supprimer la ligne', html:'×'});
+    delBtn.addEventListener('click', ()=>{
+      // une ligne qui contient des mesures ne disparaît pas sans confirmation (geste accidentel sur tablette)
+      const filled=Object.entries(r).some(([kk,v])=>kk!=='id' && v!=='' && v!=null);
+      if(filled && !confirm('Supprimer cette ligne et ses mesures ?')) return;
+      stateSC.rows = stateSC.rows.filter(x=>x.id!==r.id); renderSC(container); });
     tdAct.appendChild(delBtn);
     tr.appendChild(tdAct);
     tbody.appendChild(tr);
@@ -2137,7 +2152,8 @@ function renderPilo(container){
     html:`<span class="seg">Espacement : <strong>cote théorique ±${statePilo.tolSpacing}&nbsp;mm</strong></span>`
       + `<span class="seg">Équerrage : <strong>±${statePilo.tolEquerrage}&nbsp;mm</strong></span>`
       + `<span class="seg">Selon NTC 309</span>`
-      + `<span class="seg">Valeur hors plage = surlignée en rouge</span>`}));
+      + `<span class="seg">Valeur hors plage = surlignée en rouge</span>`
+      + `<button class="tol-edit" type="button" onclick="openSettings()">Modifier les tolérances</button>`}));
 
   const toolbar = el('div',{class:'table-toolbar'});
   toolbar.appendChild(el('span',{style:'font-size:11.5px;color:var(--ink-soft)', html:`${statePilo.rows.length} ligne(s) — astuce : sélectionnez un bloc de cellules dans Excel, collez-le (Ctrl+V) dans une cellule du tableau ci-dessous`}));
@@ -2193,15 +2209,19 @@ function renderPilo(container){
       tr.appendChild(td);
     });
     const tdAct = el('td',{class:'row-actions'});
-    const dupBtn = el('button',{html:'Dupl.'});
+    const dupBtn = el('button',{html:'Dupl.', title:'Dupliquer la ligne', 'aria-label':'Dupliquer la ligne'});
     dupBtn.addEventListener('click', ()=>{
       const idx = statePilo.rows.indexOf(r);
       statePilo.rows.splice(idx+1, 0, {...r, id:uid()});
       renderPilo(container);
     });
     tdAct.appendChild(dupBtn);
-    const delBtn = el('button',{class:'btn-delete-circle', title:'Supprimer la ligne', html:'×'});
-    delBtn.addEventListener('click', ()=>{ statePilo.rows = statePilo.rows.filter(x=>x.id!==r.id); renderPilo(container); });
+    const delBtn = el('button',{class:'btn-delete-circle', title:'Supprimer la ligne', 'aria-label':'Supprimer la ligne', html:'×'});
+    delBtn.addEventListener('click', ()=>{
+      // une ligne qui contient des mesures ne disparaît pas sans confirmation (geste accidentel sur tablette)
+      const filled=Object.entries(r).some(([kk,v])=>kk!=='id' && v!=='' && v!=null);
+      if(filled && !confirm('Supprimer cette ligne et ses mesures ?')) return;
+      statePilo.rows = statePilo.rows.filter(x=>x.id!==r.id); renderPilo(container); });
     tdAct.appendChild(delBtn);
     tr.appendChild(tdAct);
     tbody.appendChild(tr);
@@ -4480,13 +4500,14 @@ function xpFitTexts(root){
     const span=row.firstElementChild; if(!span) continue;
     const avail=t.clientWidth-4, need=span.scrollWidth;
     if(avail>0 && need>avail){
-      const k=Math.max(0.72, avail/need);
+      const r=avail/need, k=Math.max(0.72, r), u = r<0.72 ? Math.max(0.3, r/0.72) : 1;    // resserré, puis réduit : toujours entier
       span.style.display='inline-block';
-      span.style.transform=`scaleX(${k})`;
+      span.style.transform = u<1 ? `scale(${k*u},${u})` : `scaleX(${k})`;
       const jc=row.style.justifyContent;
       span.style.transformOrigin = jc==='center' ? '50% 50%' : jc==='flex-end' ? '100% 50%' : '0 50%';
       // la place libérée par la compression est rendue à l'alignement
-      span.style.margin = jc==='center' ? `0 ${-(need-need*k)/2}px` : jc==='flex-end' ? `0 0 0 ${-(need-need*k)}px` : `0 ${-(need-need*k)}px 0 0`;
+      const kk = k*u;
+      span.style.margin = jc==='center' ? `0 ${-(need-need*kk)/2}px` : jc==='flex-end' ? `0 0 0 ${-(need-need*kk)}px` : `0 ${-(need-need*kk)}px 0 0`;
     }
   }
 }
@@ -4625,16 +4646,51 @@ async function xpBuildPdf(buf, fileName){
       doc.saveGraphicsState(); doc.rect(x,y,w,h,null); doc.clip(); doc.discardPath();
       if(wrap){
         const txt=t.textContent, f=pdfFont(base.fam,base.b,base.i);
-        doc.setFont(f[0],f[1]); doc.setFontSize(base.size);
-        const lines=[]; txt.split('\n').forEach(par=>{ const l=doc.splitTextToSize(par, Math.max(1,avail)); (l.length?l:['']).forEach(x=>lines.push(x)); });
-        const bh=lines.length*lh, top = va==='flex-start'?y : va==='center'? y+(h-bh)/2 : y+h-bh;
-        lines.forEach((ln,k)=>{ const runs=[{...base, t:ln, font:f}], lw=pdfWidth(doc,runs);
+        // lignes à la taille d'origine ; si elles dépassent la hauteur de la case, on réduit juste ce qu'il faut
+        let sz=base.size, lines, lhz;
+        for(let u=1; ; u-=0.04){
+          sz=base.size*Math.max(u,0.45); lhz=sz*1.18; doc.setFont(f[0],f[1]); doc.setFontSize(sz);
+          lines=[]; txt.split('\n').forEach(par=>{ const l=doc.splitTextToSize(par, Math.max(1,avail)); (l.length?l:['']).forEach(x=>lines.push(x)); });
+          if(lines.length*lhz<=h+0.5 || u<=0.45) break;
+        }
+        const bh=lines.length*lhz, top = va==='flex-start'?y : va==='center'? y+(h-bh)/2 : y+h-bh;
+        lines.forEach((ln,k)=>{ const runs=[{...base, size:sz, t:ln, font:f}], lw=pdfWidth(doc,runs);
           const lx = ha==='right' ? x+w-padR-lw : ha==='center' ? x+padL+(avail-lw)/2 : x+padL;
-          pdfDrawRuns(doc, runs, lx, top+k*lh+(lh-base.size)/2+base.size*0.86, 1); });
+          pdfDrawRuns(doc, runs, lx, top+k*lhz+(lhz-sz)/2+sz*0.86, 1); });
       } else {
         const row=t.querySelector('.xp-row'), jc=row?row.style.justifyContent:'flex-start';
         const runs=pdfRunsOf(row?row.firstElementChild:t, base);
-        const need=pdfWidth(doc, runs), hs = need>avail && avail>0 ? Math.max(0.72, avail/need) : 1, lw=need*hs;
+        let need=pdfWidth(doc, runs);
+        // Texte trop long pour sa case : 1) resserré jusqu'à 72 % ; 2) réduit jusqu'à 55 % ;
+        // 3) si cela ne suffit pas, sur deux lignes quand la hauteur le permet ; 4) sinon, réduit juste ce qu'il faut.
+        // Le texte reste toujours entier et lisible — jamais coupé.
+        if(avail>0 && need*0.72>avail){
+          const base0=runs.map(r=>r.size), full=runs.map(r=>r.t).join('');
+          const u55=Math.max(0.55, avail/(need*0.72));
+          if(need*0.72*u55<=avail+0.5 || runs.length>1 || !/\s/.test(full.trim())){
+            const u=Math.max(0.3, Math.min(1, avail/(need*0.72))); runs.forEach(r=>r.size*=u);
+          } else {
+            // coupure au blanc le plus proche du milieu
+            const mid=full.length/2; let cut=-1;
+            for(let d=0; d<full.length/2 && cut<0; d++){ if(full[Math.floor(mid+d)]===' ') cut=Math.floor(mid+d); else if(full[Math.floor(mid-d)]===' ') cut=Math.floor(mid-d); }
+            const L=[full.slice(0,cut).trim(), full.slice(cut+1).trim()], r0=runs[0];
+            const w0=Math.max(...L.map(x=>pdfWidth(doc,[{...r0,t:x,size:base0[0]}])));
+            let u2=Math.min(1, avail/(w0*0.72)); const lh2=base0[0]*1.12;
+            if(2*lh2*u2 > h) u2=Math.min(u2, h/(2*lh2));
+            if(u2>=0.42){                                   // deux lignes lisibles
+              doc.restoreGraphicsState(); doc.saveGraphicsState(); doc.rect(x,y,w,h,null); doc.clip(); doc.discardPath();
+              const sz=base0[0]*u2, lines=L.map(t0=>[{...r0,t:t0,size:sz}]);
+              const bh=2*sz*1.12, top0 = va==='flex-start'?y : va==='center'? y+(h-bh)/2 : y+h-bh;
+              lines.forEach((ln,i)=>{ const lw0=pdfWidth(doc,ln), hs2=lw0>avail?Math.max(0.72,avail/lw0):1, lww=lw0*hs2;
+                const lx0 = jc==='flex-end' ? x+w-padR-lww : jc==='center' ? x+padL+(avail-lww)/2 : x+padL;
+                pdfDrawRuns(doc, ln, lx0, top0+i*sz*1.12+sz*0.92, hs2); });
+              doc.restoreGraphicsState(); return;
+            }
+            const u=Math.max(0.3, Math.min(1, avail/(need*0.72))); runs.forEach(r=>r.size*=u);
+          }
+          need=pdfWidth(doc, runs);
+        }
+        const hs = need>avail && avail>0 ? Math.max(0.72, avail/need) : 1, lw=need*hs;
         const maxSize=Math.max(...runs.map(r=>r.size), base.size), lhh=maxSize*1.18;
         const top = va==='flex-start'?y : va==='center'? y+(h-lhh)/2 : y+h-lhh;
         const lx = jc==='flex-end' ? x+w-padR-lw : jc==='center' ? x+padL+(avail-lw)/2 : x+padL;
@@ -4683,6 +4739,26 @@ const XLSX_NAMES = {mad:['FC-MAD-ADV','FC-MAD-ADV.xlsx'], sc:['FC-Sous-couche','
 function xlsxFileName(tabKey){ return `${docId(tabKey)}.xlsx`; }   // l'identifiant porte déjà le code de la fiche
 /* Construit le classeur d'une fiche et renvoie ses octets. UNE seule source pour le
    téléchargement et pour l'impression : le PDF est l'impression de ce fichier-là. */
+/* Excel : une case dont le texte serait coupé (case fusionnée, ou voisine de droite occupée)
+   reçoit « Ajuster » (shrinkToFit) : Excel réduit alors le texte pour l'afficher en entier.
+   Les autres cases ne changent pas (un texte qui déborde sur une case vide reste tel quel). */
+function applyShrinkToFit(ws){
+  const merges={}; (ws.model.merges||[]).forEach(ref=>{ const [a,b]=ref.split(':'); const A=ws.getCell(a), B=ws.getCell(b);
+    merges[A.address]={c1:A.col, c2:B.col}; });
+  const inMerge=new Set(); (ws.model.merges||[]).forEach(ref=>{ const [a,b]=ref.split(':'); const A=ws.getCell(a), B=ws.getCell(b);
+    for(let r=A.row;r<=B.row;r++) for(let c=A.col;c<=B.col;c++) if(r!==A.row||c!==A.col) inMerge.add(r+':'+c); });
+  const colW=c=>ws.getColumn(c).width||9;
+  ws.eachRow({includeEmpty:false}, row=>row.eachCell({includeEmpty:false}, cell=>{
+    const v=cell.value; if(typeof v!=='string' || !v) return;
+    const al=cell.alignment||{}; if(al.wrapText || al.shrinkToFit) return;
+    const m=merges[cell.address]; const c1=cell.col, c2=m?m.c2:c1;
+    let chars=0; for(let c=c1;c<=c2;c++) chars+=colW(c);
+    if(!m){ const nb=row.getCell(c2+1); const free = nb.value==null && !inMerge.has(row.number+':'+(c2+1)); if(free) return; }
+    const sz=(cell.font&&cell.font.size)||11, bold=cell.font&&cell.font.bold;
+    const need=v.length*(sz/11)*(bold?1.1:1)*1.02;       // estimation prudente, en largeurs de caractère Excel
+    if(need>chars) cell.alignment={...al, shrinkToFit:true};
+  }));
+}
 async function buildXlsxBuffer(tabKey){
   await prepareSignatures(tabKey);          // tracés rognés, pour qu'ils remplissent leur case
   if(tabKey==='trav') return buildTravBuffer();
@@ -4699,9 +4775,19 @@ async function buildXlsxBuffer(tabKey){
   } else {
     buildXlsxFiche(wb.addWorksheet(sheet), wb, tabKey);
   }
+  wb.worksheets.forEach(applyShrinkToFit);
   return new Uint8Array(await wb.xlsx.writeBuffer());
 }
 function xlsxLibsReady(tabKey){ return tabKey==='trav' ? typeof JSZip!=='undefined' : typeof ExcelJS!=='undefined'; }
+/* PDF fabriqué par l'application (même rendu que l'impression), nommé comme la fiche.
+   Sans les modules d'export (première ouverture hors réseau) : repli sur l'impression du navigateur. */
+async function exportPdf(tabKey){
+  if(!xlsxLibsReady(tabKey) || typeof jspdf==='undefined'){ return printLikeExcel(tabKey); }
+  if(!xlsxPreflight(tabKey)) return;
+  const buf=await buildXlsxBuffer(tabKey);
+  const blob=await xpBuildPdf(buf, xlsxFileName(tabKey));
+  triggerDownload(blob, `${docId(tabKey)}.pdf`);
+}
 async function exportXlsx(tabKey, csvFallback){
   if(!xlsxLibsReady(tabKey)){
     // Pas de réseau pour charger la librairie (cas fréquent sur chantier) : repli automatique en CSV.
@@ -4844,21 +4930,11 @@ function decisionAndSignature(tabKey, anomalyCount, onExport){
   const btnRow = el('div',{class:'btn-row', style:'margin-top:14px;'});
   const archBtn = el('button',{class:'btn btn-primary keep', html:'Archiver'});
   archBtn.addEventListener('click', ()=>{ if(typeof openArchive==='function') openArchive(tabKey); });
-  const exportBtn = el('button',{class:'btn keep', html:'Exporter (.xlsx)'});
+  const exportBtn = el('button',{class:'btn keep', html:'Excel', title:'Télécharger la fiche au format Excel'});
   exportBtn.addEventListener('click', ()=>busyRun(exportBtn, ()=>exportXlsx(tabKey, onExport)));
-  const printBtn = el('button',{class:'btn keep', html:'Imprimer / PDF'});
-  printBtn.addEventListener('click', ()=>busyRun(printBtn, ()=>printLikeExcel(tabKey)));
-  btnRow.appendChild(archBtn); btnRow.appendChild(exportBtn); btnRow.appendChild(printBtn);
-  let colsPanel = null;
-  if(colVisibility[tabKey]){
-    const colBtn = el('button',{class:'btn', html:'Colonnes à imprimer'});
-    colBtn.addEventListener('click', ()=>{
-      if(colsPanel){ colsPanel.remove(); colsPanel=null; return; }
-      colsPanel = buildColsPanel(tabKey);
-      wrap.appendChild(colsPanel);
-    });
-    btnRow.appendChild(colBtn);
-  }
+  const printBtn = el('button',{class:'btn keep', html:'PDF', title:'Télécharger la fiche en PDF (à ouvrir pour l\u2019imprimer)'});
+  printBtn.addEventListener('click', ()=>busyRun(printBtn, ()=>exportPdf(tabKey)));
+  btnRow.appendChild(archBtn); btnRow.appendChild(printBtn); btnRow.appendChild(exportBtn);
   wrap.appendChild(btnRow);
   return wrap;
 }
@@ -6088,6 +6164,7 @@ function renderAll(){
   if(typeof applyRelaisLock==='function') applyRelaisLock();
   if(typeof rememberPosition==='function') rememberPosition();
   if(typeof applyArchiveBanner==='function') applyArchiveBanner();
+  if(typeof fitAllFields==='function') requestAnimationFrame(()=>fitAllFields(document.getElementById('tab-content')));
   const idEl = document.getElementById('mastheadDocId');
   if(idEl) idEl.textContent = docId(activeTab);
   const gen = new Date().toLocaleString('fr-FR', {dateStyle:'short', timeStyle:'short'});
@@ -6111,6 +6188,7 @@ document.getElementById('settingsOverlay').addEventListener('click', e=>{ if(e.t
 /* Échap ferme la modale ouverte : au stylet sur tablette, viser le bouton « Annuler » est pénible. */
 document.addEventListener('keydown', e=>{
   if(e.key!=='Escape') return;
+  const mm=document.querySelector('.cb-menu'); if(mm){ mm.remove(); return; }
   const fm=[...document.querySelectorAll('.fcq-modal')].pop();
   if(fm){ const c=[...fm.querySelectorAll('button')].find(x=>/^(Fermer|Annuler)$/.test(x.textContent.trim())); c ? c.click() : fm.remove(); return; }
   if(document.getElementById('pastePreviewOverlay')){ cancelPendingPaste(); return; }
@@ -6385,7 +6463,9 @@ function renderApp(){
   ['progress-host','tabs','tab-content','chantier-bar'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display=isCh?'':'none'; });
   const vh=document.getElementById('view-host'); vh.style.display=isCh?'none':''; vh.innerHTML='';
   // actions propres à un chantier ouvert (dont les paramètres du marché : tolérances du chantier)
-  ['saveSessionBtn','loadSessionBtn','mastheadDocId','settingsBtn'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display=isCh?'':'none'; });
+  ['mastheadDocId'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display=isCh?'':'none'; });
+  // sauvegarde, restauration et tolérances : rangées dans le menu « ⋯ Chantier » (plus de doublon en haut)
+  ['saveSessionBtn','loadSessionBtn','settingsBtn'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display='none'; });
   renderNav();
   if(appView==='home') renderHome(vh);
   else if(appView==='reseau') renderReseau(vh);
@@ -6548,15 +6628,12 @@ function renderChantierBar(){
   top.appendChild(el('div',{class:'cb-id', html:
     `<img class="cb-logo" src="${NET_LOGOS.rer}" alt=""><div><div class="cb-name">${esc(ch.nom)}${ch.periode?` <span class="ch-period">${esc(ch.periode)}</span>`:''}</div><div class="cb-meta">${meta||'Informations du chantier à compléter'}</div></div>`}));
   const acts=el('div',{class:'btn-row'});
-  const relay=el('button',{class:'btn btn-primary', html:'Passer le relais'}); relay.addEventListener('click', openRelaisSend);
-  acts.appendChild(relay);
   const manage=el('button',{class:'btn', html:`Gérer les fiches <span class="cb-count">${ch.fiches.length}</span>`});
-  const edit=el('button',{class:'btn', html:'Informations du chantier'});
-  edit.addEventListener('click',()=>openChantierForm(ch));
-  const inv=el('button',{class:'btn', html:'Inviter l\u2019équipe'}); inv.addEventListener('click', openInvite);
+  const relay=el('button',{class:'btn', html:'Passer le relais'}); relay.addEventListener('click', openRelaisSend);
   const nA=(ch.archives||[]).length;
-  const arc=el('button',{class:'btn', html:`Archives${nA?` <span class="cb-count">${nA}</span>`:''}`}); arc.addEventListener('click', openArchives);
-  acts.append(manage, edit, inv, arc); top.appendChild(acts); bar.appendChild(top);
+  const more=el('button',{class:'btn cb-more', 'aria-haspopup':'menu', html:'⋯ Chantier'});
+  more.addEventListener('click', e=>{ e.stopPropagation(); openChantierMenu(more, ch); });
+  acts.append(manage, relay, more); top.appendChild(acts); bar.appendChild(top);
   const last=(ch.historique||[]).slice(-1)[0];
   if(last) bar.appendChild(el('div',{class:'cb-relay', html:`Dernier relais · ${esc(last.texte)} · ${new Date(last.at).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}`}));
   const panel=el('div',{class:'cb-fiches', style:'display:none'});
@@ -6755,7 +6832,13 @@ function openRelaisReceive(){
   };
   fileBtn.addEventListener('click',()=>fileIn.click());
   fileIn.addEventListener('change',()=>{ const f=fileIn.files[0]; if(!f) return;
-    const r=new FileReader(); r.onload=()=>{ try{ preview(JSON.parse(r.result)); }catch(e){ stage.innerHTML='<p class="rl-err">Fichier illisible.</p>'; } }; r.readAsText(f); });
+    const r=new FileReader(); r.onload=()=>{ try{ let d=JSON.parse(r.result);
+        // copie de sauvegarde (menu « ⋯ Chantier ») : reprise comme un relais de tout le chantier
+        if(d && d.fcq!=='relais' && d.stateMad){ const meta=d.chantier||{nom:'Chantier importé', fiches:TABS.map(t=>t.key)};
+          const {version,savedAt,chantier,...data}=d;
+          d={fcq:'relais', v:1, scope:'chantier', key:null, de:'copie de sauvegarde', at:Date.parse(savedAt)||Date.now(),
+             chantier:{...meta, id: meta.id || ('ch-'+Date.now().toString(36)), fiches:(meta.fiches||TABS.map(t=>t.key))}, data}; }
+        preview(d); }catch(e){ stage.innerHTML='<p class="rl-err">Fichier illisible.</p>'; } }; r.readAsText(f); });
   scanBtn.addEventListener('click', async ()=>{
     stopCam(); stage.innerHTML='';
     if(typeof jsQR==='undefined'){ stage.innerHTML='<p class="rl-err">Module de lecture QR indisponible.</p>'; return; }
@@ -6907,7 +6990,10 @@ function openInvite(){
    ===================================================================================== */
 const DIR_OK = typeof window.showDirectoryPicker === 'function' && location.protocol !== 'file:';
 const IS_MOBILE = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
-const SAVEAS_TIP = 'Dans Chrome ou Edge : <b>Paramètres › Téléchargements</b> › activez <b>« Toujours demander où enregistrer les fichiers »</b>. À chaque archivage, Windows vous demande le dossier : choisissez celui de Teams, sous « OneDrive ». Le navigateur retient le dernier dossier utilisé.';
+const IS_EDGE = /Edg\//.test(navigator.userAgent), BROWSER = IS_EDGE ? 'Edge' : 'Chrome';
+const SAVEAS_TIP = IS_EDGE
+  ? 'Dans Edge : <b>Paramètres › Téléchargements</b> › activez <b>« Demander où enregistrer chaque fichier avant le téléchargement »</b> (selon la version : « Me demander quoi faire avec chaque téléchargement », puis <b>Enregistrer sous</b>). Windows vous demande alors le dossier : choisissez celui de Teams, sous « OneDrive ». Edge retient le dernier dossier utilisé.'
+  : 'Dans Chrome : <b>Paramètres › Téléchargements</b> › activez <b>« Toujours demander où enregistrer les fichiers »</b>. À chaque archivage, Windows vous demande le dossier : choisissez celui de Teams, sous « OneDrive ». Chrome retient le dernier dossier utilisé.';
 function idb(){ return new Promise((res,rej)=>{ const r=indexedDB.open('fcq-digital',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
 async function kvGet(k){ try{ const db=await idb(); return await new Promise(res=>{ const q=db.transaction('kv').objectStore('kv').get(k); q.onsuccess=()=>res(q.result||null); q.onerror=()=>res(null); }); }catch(e){ return null; } }
 async function kvSet(k,v){ try{ const db=await idb(); await new Promise(res=>{ const t=db.transaction('kv','readwrite'); t.objectStore('kv').put(v,k); t.oncomplete=res; t.onerror=res; }); }catch(e){} }
@@ -6987,15 +7073,15 @@ function openArchive(k){
     let dirH=null; archiveDir(ch).then(h=>{ dirH=h; paint(h); });
     const why=e=>{ const n=(e&&e.name)||'Erreur', m=(e&&e.message)||String(e);
       const hint = location.protocol==='file:' ? 'Ouvrez l\u2019application depuis son adresse web (https://…) plutôt que depuis un fichier sur le PC.'
-                 : n==='SecurityError' ? 'Chrome n\u2019a pas associé la demande à votre clic : réessayez.'
-                 : n==='NotAllowedError' && /user agent or the platform/i.test(m) ? 'Cette fonction de Chrome est bloquée sur ce poste (règle informatique du poste, ou application ouverte depuis un fichier).'
-                 : n==='NotAllowedError' ? 'L\u2019accès a été refusé : cliquez sur « Autoriser » quand Chrome le demande.'
+                 : n==='SecurityError' ? `${BROWSER} n\u2019a pas associé la demande à votre clic : réessayez.`
+                 : n==='NotAllowedError' && /user agent or the platform/i.test(m) ? `Cette fonction ${IS_EDGE?'d\u2019Edge':'de Chrome'} est bloquée sur ce poste (règle informatique du poste, ou application ouverte depuis un fichier).`
+                 : n==='NotAllowedError' ? `L\u2019accès a été refusé : cliquez sur « Autoriser » quand ${BROWSER} le demande.`
                  : 'Choisissez un sous-dossier ordinaire (par exemple le raccourci du dossier Teams sous « OneDrive »).';
       if(n==='NotAllowedError' && /user agent or the platform/i.test(m)){ store.dirBlocked=true; saveStore(); }
       if(n==='NotAllowedError' || n==='SecurityError') setTimeout(()=>{ if(!stage.querySelector('.ar-fallback')){
           const fb=el('div',{class:'ar-fallback', html:`<p class="ar-why"><b>Solution qui marche partout :</b> ${SAVEAS_TIP}</p>`}); stage.appendChild(fb);
           dirBtn.replaceWith(saveAs); change.style.display='none'; } },0);
-      return `<p class="rl-err">Chrome n\u2019autorise pas l\u2019écriture directe dans un dossier ici.</p><p class="ar-why">${esc(hint)}<br><span>Détail technique : ${esc(n)} — ${esc(m)}</span></p>`; };
+      return `<p class="rl-err">${BROWSER} n\u2019autorise pas l\u2019écriture directe dans un dossier ici.</p><p class="ar-why">${esc(hint)}<br><span>Détail technique : ${esc(n)} — ${esc(m)}</span></p>`; };
     const pick=async ()=>{ const h=await window.showDirectoryPicker({id:'fcq-archive', mode:'readwrite'}); dirH=h; kvSet('dir:'+ch.id, h); paint(h); return h; };
     change.addEventListener('click', async ()=>{ stage.innerHTML=''; try{ await pick(); }catch(e){ if(!e || e.name!=='AbortError') stage.innerHTML=why(e); } });
     const doWrite=()=>busyRun(dirBtn, async ()=>{
@@ -7019,7 +7105,7 @@ function openArchive(k){
           catch(e){
             const allow=el('button',{class:'btn btn-primary', html:`Autoriser l\u2019accès à « ${esc(dirH.name)} »`});
             allow.addEventListener('click', async ()=>{ try{ if(await dirH.requestPermission({mode:'readwrite'})==='granted'){ stage.innerHTML=''; doWrite(); } else stage.innerHTML=why({name:'NotAllowedError',message:'autorisation refusée'}); }catch(e2){ stage.innerHTML=why(e2); } });
-            stage.appendChild(el('p',{class:'rl-info', html:'Chrome demande votre accord pour écrire dans ce dossier.'})); stage.appendChild(allow); return;
+            stage.appendChild(el('p',{class:'rl-info', html:`${BROWSER} demande votre accord pour écrire dans ce dossier.`})); stage.appendChild(allow); return;
           }
         }
         if(perm!=='granted'){ stage.innerHTML=why({name:'NotAllowedError', message:'autorisation refusée'}); return; }
@@ -7085,6 +7171,67 @@ function openArchives(){
   const close=el('button',{class:'btn', html:'Fermer'}); close.addEventListener('click',()=>ov.remove()); foot.appendChild(close); box.appendChild(foot);
   ov.appendChild(box); document.body.appendChild(ov);
 }
+
+
+/* menu « ⋯ Chantier » : tout ce qui sert à préparer ou gérer le chantier, hors du quotidien */
+function openChantierMenu(anchor, ch){
+  document.querySelectorAll('.cb-menu').forEach(m=>m.remove());
+  const nA=(ch.archives||[]).length;
+  const items=[
+    ['Informations du chantier', 'Nom, ligne, localisation, signataires', ()=>openChantierForm(ch)],
+    ['Inviter l\u2019équipe', 'Lien et QR code pour les autres tablettes', openInvite],
+    [`Archives${nA?` (${nA})`:''}`, 'Fiches déjà envoyées pour ce chantier', openArchives],
+    ['Tolérances du marché', 'Sous-couche et pilotis', openSettings],
+    '—',
+    ['Copie de sauvegarde', 'Enregistrer tout le chantier dans un fichier', exportSession],
+    ['Restaurer une copie', 'Recharger un fichier de sauvegarde', ()=>document.getElementById('loadSessionInput').click()],
+  ];
+  const m=el('div',{class:'cb-menu', role:'menu'});
+  items.forEach(it=>{
+    if(it==='—'){ m.appendChild(el('div',{class:'cb-menu-sep'})); return; }
+    const [t,d,fn]=it; const b=el('button',{class:'cb-menu-item', role:'menuitem', html:`<b>${esc(t)}</b><span>${esc(d)}</span>`});
+    b.addEventListener('click',()=>{ m.remove(); fn(); }); m.appendChild(b);
+  });
+  document.body.appendChild(m);
+  const r=anchor.getBoundingClientRect(), w=300;
+  m.style.top=(window.scrollY+r.bottom+6)+'px'; m.style.left=Math.max(8, Math.min(window.scrollX+r.right-w, window.innerWidth-w-8))+'px';
+  setTimeout(()=>{ const close=e=>{ if(!m.contains(e.target)){ m.remove(); document.removeEventListener('click',close,true); } }; document.addEventListener('click',close,true); },0);
+}
+
+
+/* Cases d'en-tête adaptatives : quand le texte ne tient plus, la case prend deux colonnes,
+   puis toute la ligne ; elle revient à sa taille si le texte raccourcit. */
+const __fitCtx=document.createElement('canvas').getContext('2d');
+function fitField(inp){
+  const wrap=inp.parentElement, grid=wrap && wrap.parentElement;
+  if(!grid || !grid.classList.contains('field-grid')) return;
+  const cols=getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length;
+  wrap.classList.remove('fw-2','fw-all');
+  if(cols<2) return;
+  const cs=getComputedStyle(inp); __fitCtx.font=`${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const txt=inp.value||''; if(!txt) { inp.removeAttribute('title'); return; }
+  const need=__fitCtx.measureText(txt).width+14, one=inp.clientWidth;
+  if(need<=one) { inp.removeAttribute('title'); return; }
+  inp.title=txt;
+  wrap.classList.add(cols>2 && need>one*2+14 ? 'fw-all' : 'fw-2');
+}
+/* tout autre contenu de case (groupe de choix, etc.) plus large que sa colonne : même règle */
+function fitWide(wrap){
+  const grid=wrap.parentElement; const cols=getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length;
+  wrap.classList.remove('fw-2','fw-all'); if(cols<2) return;
+  const content=[...wrap.children].find(c=>c.tagName!=='LABEL'); if(!content) return;
+  void wrap.offsetWidth;
+  if(content.scrollWidth<=wrap.clientWidth+1) return;
+  wrap.classList.add('fw-2'); void wrap.offsetWidth;
+  if(content.scrollWidth>wrap.clientWidth+1 && cols>2){ wrap.classList.remove('fw-2'); wrap.classList.add('fw-all'); }
+}
+function fitAllFields(root){
+  const R=root||document;
+  R.querySelectorAll('.field-grid > div > input[type=text]').forEach(fitField);
+  R.querySelectorAll('.field-grid > div').forEach(w=>{ if(!w.querySelector(':scope > input[type=text]')) fitWide(w); });
+}
+document.addEventListener('input', e=>{ const t=e.target; if(t && t.matches && t.matches('.field-grid > div > input[type=text]')) fitField(t); }, true);
+window.addEventListener('resize', ()=>fitAllFields());
 
 /* ---------- démarrage ---------- */
 store = loadStore();
