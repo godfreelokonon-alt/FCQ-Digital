@@ -7022,7 +7022,9 @@ function newFiche(k){
 }
 function openArchive(k){
   const ch=currentChantier(); if(!ch) return;
-  const DIRX = DIR_OK && !store.dirBlocked;   // écriture directe, sauf si ce poste l'a déjà refusée
+  // écriture directe dans un dossier : PC uniquement. Sur tablette Android, le sélecteur ne propose que
+  // la mémoire de la tablette (OneDrive n'y figure pas) : les fiches n'arriveraient jamais dans Teams.
+  const DIRX = DIR_OK && !store.dirBlocked && !IS_MOBILE;
   const d=ensureDecisionState(k), sig=d.signatures||{};
   const signed=['realise','visa'].filter(w=>sig[w] && sig[w].dataUrl).length;
   const ov=el('div',{class:'fcq-modal'}), box=el('div',{class:'fcq-dialog rl-dialog'});
@@ -7031,7 +7033,7 @@ function openArchive(k){
   const tip=el('div',{class:'ar-tip', html: DIRX
     ? `<b>Dépôt direct :</b> choisissez une fois le dossier d\u2019archivage — le raccourci du dossier Teams, dans l\u2019Explorateur sous « OneDrive ». Les fiches y sont ensuite enregistrées directement ; OneDrive les envoie dans Teams.`
     : !IS_MOBILE ? `<b>Enregistrer dans le dossier Teams :</b> ${SAVEAS_TIP}`
-    : `<b>Pour déposer directement dans un dossier du canal :</b> dans le menu de partage, choisissez <b>OneDrive</b> (et non Teams), puis le raccourci du dossier d\u2019archivage. <span>Teams, lui, publie toujours le fichier dans la conversation du canal.</span>`});
+    : `<b>Pour déposer dans le dossier du canal :</b> touchez <b>Partager</b>, choisissez <b>OneDrive</b> (et non Teams), puis le raccourci du dossier d\u2019archivage et <b>Charger</b>. <span>Teams, lui, publie toujours le fichier dans la conversation du canal. Si OneDrive n\u2019apparaît pas : fiche enregistrée sur la tablette, puis Teams › canal › Fichiers › + › Charger.</span>`});
   box.appendChild(tip);
   if(signed<2) box.appendChild(el('div',{class:'rl-warn', style:'margin-bottom:12px', html: signed===0 ? 'Cette fiche n\u2019est pas encore signée.' : 'Une seule des deux signatures est présente.'}));
   let fmt='both';
