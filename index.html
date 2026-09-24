@@ -429,6 +429,7 @@
   .ar-name{margin:2px 0 12px;} .ar-name label{display:block;}
   .ar-name-h{font-size:11.5px;color:var(--ink-soft);margin-top:4px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
   .ar-reset{background:none;border:0;padding:0;font:inherit;font-size:11.5px;font-weight:700;color:var(--accent);cursor:pointer;text-decoration:underline;}
+  .ar-choice.ar-choice2{grid-template-columns:1fr 1fr;}
   .fcq-modal{position:fixed;inset:0;background:rgba(10,22,52,.45);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px;}
   .fcq-dialog{background:var(--panel);border-radius:18px;padding:24px 24px 20px;width:min(620px,100%);max-height:90vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.25);}
   .fcq-dialog h3{margin:0 0 4px;font-size:20px;color:var(--navy);} .fcq-dialog-hint{margin:0 0 16px;font-size:13px;color:var(--ink-soft);}
@@ -4740,7 +4741,11 @@ const XLSX_NAMES = {mad:['FC-MAD-ADV','FC-MAD-ADV.xlsx'], sc:['FC-Sous-couche','
   pilo:['FC-Pilotis','FC-PILOTIS.xlsx'], geo61:['Gauche','FC-GEO-61.xlsx'],
   courbe:['Gauche en courbe 1','FC-GEO-61-COURBE.xlsx'], jgp:['Ouverture joints','FC-JT-12.xlsx'],
   trav:['FC Travelage-Equerrage','FC-TRAVELAGE-RER.xlsx']};
-function xlsxFileName(tabKey){ return `${docId(tabKey)}.xlsx`; }   // l'identifiant porte déjà le code de la fiche
+function ficheFileBase(tabKey){
+  if(typeof fillName!=='function' || typeof currentChantier!=='function' || !currentChantier()) return docId(tabKey);
+  return safeFileName(fillName(((store&&store.nameTpl)||{})[tabKey] || NAME_DEFAULT, nameValues(tabKey)));
+}
+function xlsxFileName(tabKey){ return `${ficheFileBase(tabKey)}.xlsx`; }
 /* Construit le classeur d'une fiche et renvoie ses octets. UNE seule source pour le
    téléchargement et pour l'impression : le PDF est l'impression de ce fichier-là. */
 /* Excel : une case dont le texte serait coupé (case fusionnée, ou voisine de droite occupée)
@@ -4790,7 +4795,7 @@ async function exportPdf(tabKey){
   if(!xlsxPreflight(tabKey)) return;
   const buf=await buildXlsxBuffer(tabKey);
   const blob=await xpBuildPdf(buf, xlsxFileName(tabKey));
-  triggerDownload(blob, `${docId(tabKey)}.pdf`);
+  triggerDownload(blob, `${ficheFileBase(tabKey)}.pdf`);
 }
 async function exportXlsx(tabKey, csvFallback){
   if(!xlsxLibsReady(tabKey)){
@@ -4938,7 +4943,7 @@ function decisionAndSignature(tabKey, anomalyCount, onExport){
   exportBtn.addEventListener('click', ()=>busyRun(exportBtn, ()=>exportXlsx(tabKey, onExport)));
   const printBtn = el('button',{class:'btn keep', html:'PDF', title:'Télécharger la fiche en PDF (à ouvrir pour l\u2019imprimer)'});
   printBtn.addEventListener('click', ()=>busyRun(printBtn, ()=>exportPdf(tabKey)));
-  btnRow.appendChild(archBtn);
+  btnRow.appendChild(archBtn); btnRow.appendChild(printBtn); btnRow.appendChild(exportBtn);
   wrap.appendChild(btnRow);
   return wrap;
 }
@@ -6386,7 +6391,7 @@ function applySnapshot(snap){
 }
 function newChantier(nom, periode){
   return {id:'ch-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), reseau:'rer',
-    nom, periode, ligne:'', interstation:'', voies:'', pkDebut:'', pkFin:'', secteur:'', entreprise:'', repEntreprise:'', controleur:'',
+    nom, periode, ligne:'', interstation:'', voies:'', pkDebut:'', pkFin:'', secteur:'', entreprise:'', repEntreprise:'', controleur:'', dossierTeams:'',
     fiches:TABS.map(t=>t.key), snapshot:deepCopy(BLANK), createdAt:Date.now(), updatedAt:Date.now()};
 }
 function loadStore(){
@@ -6589,7 +6594,8 @@ function openChantierForm(ch){
   const fields=[['§','Projet'],['nom','Nom du chantier *','text','Ex. : ITC RVB Branches Est'],['periode','Période','text','Ex. : Automne 2026'],['ligne','Ligne RER','select'],
     ['§','Localisation'],['interstation','Interstation','text','Ex. : Nation - Vincennes'],['voies','Voie(s)','text','Ex. : V2 ou V1, V2'],
     ['pkDebut','PK début','text','Ex. : 12.300'],['pkFin','PK fin','text','Ex. : 13.100'],['secteur','Secteur / lieu','text','Ex. : Val-de-Fontenay'],
-    ['§','Intervenants'],['entreprise','Entreprise','text','Ex. : UNIFER'],['repEntreprise','Signataire entreprise','text','Nom · « Réalisé par »'],['controleur','Signataire RATP','text','Nom · « Visa RATP »']];
+    ['§','Intervenants'],['entreprise','Entreprise','text','Ex. : UNIFER'],['repEntreprise','Signataire entreprise','text','Nom · « Réalisé par »'],['controleur','Signataire RATP','text','Nom · « Visa RATP »'],
+    ['§','Archivage (facultatif)'],['dossierTeams','Lien du dossier du canal','text','Teams › canal › Fichiers › dossier › … › « Copier le lien »']];
   const inputs={};
   fields.forEach(([k,l,t,ph])=>{
     if(k==='§'){ g.appendChild(el('div',{class:'fcq-sec span2', html:l})); return; }
@@ -6599,7 +6605,7 @@ function openChantierForm(ch){
     else if(k==='nom'){ inp=el('textarea',{rows:'1', class:'fcq-grow'}); inp.value=d[k]||''; if(ph) inp.placeholder=ph;
       const grow=()=>{ inp.style.height='auto'; inp.style.height=inp.scrollHeight+'px'; }; inp.addEventListener('input',grow); setTimeout(grow,0); }
     else { inp=el('input',{type:'text', value:d[k]||''}); if(ph) inp.placeholder=ph; }
-    if(k==='nom') w.classList.add('span2');
+    if(k==='nom' || k==='dossierTeams') w.classList.add('span2');
     inputs[k]=inp; w.appendChild(inp); g.appendChild(w);
   });
   box.appendChild(g);
@@ -6609,6 +6615,8 @@ function openChantierForm(ch){
   ok.addEventListener('click',()=>{
     const v=Object.fromEntries(Object.entries(inputs).map(([k,i])=>[k,i.value.trim()]));
     if(!v.nom){ inputs.nom.focus(); inputs.nom.classList.add('input-oob'); return; }
+    const lk=v.dossierTeams ? folderLinkProblem(v.dossierTeams) : '';
+    if(lk){ inputs.dossierTeams.focus(); inputs.dossierTeams.classList.add('input-oob'); alert(lk); return; }
     const target = isNew ? d : store.chantiers.find(c=>c.id===ch.id);
     Object.assign(target, v, {updatedAt:Date.now()});
     if(isNew) store.chantiers.push(target);
@@ -6681,8 +6689,8 @@ function tabletName(){
   }
   return store.tablette;
 }
-function chMeta(ch){ const {id,nom,periode,ligne,interstation,voies,pkDebut,pkFin,secteur,entreprise,repEntreprise,controleur,fiches}=ch;
-  return {id,nom,periode,ligne,interstation,voies,pkDebut,pkFin,secteur,entreprise,repEntreprise,controleur,fiches}; }
+function chMeta(ch){ const {id,nom,periode,ligne,interstation,voies,pkDebut,pkFin,secteur,entreprise,repEntreprise,controleur,dossierTeams,fiches}=ch;
+  return {id,nom,periode,ligne,interstation,voies,pkDebut,pkFin,secteur,entreprise,repEntreprise,controleur,dossierTeams,fiches}; }
 function logRelais(ch, texte){ (ch.historique=ch.historique||[]).push({at:Date.now(), texte}); }
 
 /* Signatures pour le QR : codées en noir et blanc, un bit par pixel, compressées — quelques
@@ -7023,6 +7031,20 @@ function folderLabel(u){
     return (last && !/^[:a-z]{1,3}$/i.test(last) && last.length<80 && !/\.aspx$/i.test(last)) ? last : 'Dossier Teams du chantier';
   }catch(e){ return 'Dossier Teams du chantier'; }
 }
+/* Lien du dossier du canal : on refuse le lien du canal lui-même, qui ouvre les Publications. */
+function folderLinkProblem(u){
+  if(!/^https:\/\/\S+$/i.test(u)) return "Le lien doit commencer par https://";
+  if(/teams\.microsoft\.com\/l\/(channel|chat|message|team)\b/i.test(u) || /teams\.microsoft\.com\/.*threadId/i.test(u))
+    return "Ce lien est celui du CANAL : il ouvre les Publications.\n\nCopiez le lien du DOSSIER : dans le canal, onglet Fichiers › le dossier d'archivage › … › « Copier le lien ».";
+  return '';
+}
+function folderLabel(u){
+  try{ const x=new URL(u);
+    const id=x.searchParams.get('id') || x.searchParams.get('RootFolder') || '';
+    const parts=decodeURIComponent(id || x.pathname).split('/').filter(Boolean), last=parts[parts.length-1]||'';
+    return (last && !/^[:a-z]{1,3}$/i.test(last) && last.length<80 && !/\.aspx$/i.test(last) && id) ? last : 'dossier du canal';
+  }catch(e){ return 'dossier du canal'; }
+}
 function ficheLabel(k){ const t=TABS.find(x=>x.key===k); return t?t.label:k; }
 function archiveOf(ch, k){ return (ch.archives||[]).filter(a=>a.key===k && a.docId===docId(k)).pop(); }
 function newFiche(k){
@@ -7077,10 +7099,10 @@ function openArchive(k){
   box.appendChild(el('h3',{html:'Archiver la fiche'}));
   box.appendChild(el('p',{class:'fcq-dialog-hint', html:`<b>${esc(ficheLabel(k))}</b> — choisissez le format, vérifiez le nom, puis partagez.`}));
   if(signed<2) box.appendChild(el('div',{class:'rl-warn', style:'margin-bottom:12px', html: signed===0 ? 'Cette fiche n\u2019est pas encore signée.' : 'Une seule des deux signatures est présente.'}));
-  let fmt='both';
-  const ch3=el('div',{class:'rl-choice ar-choice'});
+  let fmt='pdf';
+  const ch3=el('div',{class:'rl-choice ar-choice ar-choice2'});
   const opt=(v,t,dd)=>{ const b=el('button',{class:'rl-opt'+(v===fmt?' on':''), html:`<b>${t}</b><span>${dd}</span>`}); b.addEventListener('click',()=>{ fmt=v; ch3.querySelectorAll('.rl-opt').forEach(x=>x.classList.toggle('on',x===b)); }); return b; };
-  ch3.append(opt('pdf','PDF','La fiche signée, à lire et imprimer'), opt('xlsx','Excel','Le classeur, calculs compris'), opt('both','Les deux','PDF et Excel ensemble'));
+  ch3.append(opt('pdf','PDF','La fiche signée, à lire et imprimer'), opt('xlsx','Excel','Le classeur, calculs compris'));
   box.appendChild(ch3);
   // nom du fichier : lisible, modifiable, appris
   const learned=(store.nameTpl||{})[k], proposed=fillName(learned||NAME_DEFAULT, nameValues(k));
@@ -7092,12 +7114,48 @@ function openArchive(k){
   nw.appendChild(nh); box.appendChild(nw);
   setTimeout(()=>{ ni.style.height='auto'; ni.style.height=ni.scrollHeight+'px'; },0);
   ni.addEventListener('input',()=>{ ni.style.height='auto'; ni.style.height=ni.scrollHeight+'px'; });
-  box.appendChild(el('div',{class:'ar-tip', html:`<b>Destination :</b> Partager › <b>Teams</b> › le canal d\u2019archivage (par exemple « Fiches signées »). Teams range la fiche dans les <b>Fichiers</b> de ce canal. La première fois, choisissez le canal : il apparaît ensuite parmi les destinations récentes.`}));
+  box.appendChild(el('div',{class:'ar-tip', html: IS_MOBILE
+    ? `<b>Pour déposer dans le dossier du canal :</b> touchez <b>Partager</b>, choisissez <b>OneDrive</b> (et non Teams), puis le raccourci du dossier d\u2019archivage et <b>Charger</b>. <span>Teams, lui, publie toujours le fichier dans la conversation du canal. Si OneDrive n\u2019apparaît pas : fiche enregistrée sur la tablette, puis Teams › canal › Fichiers › + › Charger.</span>`
+    : `<b>Pour déposer dans le dossier du canal :</b> sur PC, OneDrive ne figure pas dans le menu de partage. Utilisez le bouton <b>${fmt==='xlsx'?'Excel':'PDF'}</b> de la fiche et enregistrez dans le raccourci du dossier Teams, sous « OneDrive ». ${SAVEAS_TIP}`}));
   const stage=el('div',{class:'rl-stage'}); box.appendChild(stage);
   const foot=el('div',{class:'btn-row', style:'justify-content:flex-end;margin-top:16px'});
   const close=el('button',{class:'btn', html:'Fermer'}); close.addEventListener('click',()=>ov.remove());
   const send=el('button',{class:'btn btn-primary', html:'Partager'});
   foot.append(close, send); box.appendChild(foot);
+  const folder=ch.dossierTeams||'';
+  const fl=folder?folderLabel(folder):'', fdesc = fl==='dossier du canal' ? 'le dossier du canal' : `« ${fl} »`;
+  if(folder){
+    send.classList.remove('btn-primary');
+    // fichier préparé à l'avance : le toucher peut enregistrer ET ouvrir le dossier dans le même geste
+    let ready=null, rfmt=null, rname=null;
+    const prep=()=>{ ready=null; if(!xlsxLibsReady(k)) return; const f0=fmt, n0=safeFileName(ni.value);
+      buildXlsxBuffer(k).then(async buf=>{ const f = f0==='pdf' ? new File([await xpBuildPdf(buf, n0+'.xlsx')], n0+'.pdf', {type:'application/pdf'})
+          : new File([buf], n0+'.xlsx', {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+        if(fmt===f0 && safeFileName(ni.value)===n0){ ready=f; rfmt=f0; rname=n0; } }).catch(()=>{}); };
+    ch3.addEventListener('click', ()=>setTimeout(prep,0)); ni.addEventListener('change', prep); prep();
+    const go=el('button',{class:'btn btn-primary', html:`Enregistrer et ouvrir ${esc(fdesc)}`});
+    const done=(f, opened)=>{
+      const base=f.name.replace(/\.(pdf|xlsx)$/,''); if(base!==safeFileName(proposed)) learnName(k, base);
+      (ch.archives=ch.archives||[]).push({key:k, docId:docId(k), nom:base, at:Date.now(), formats:[f.name.endsWith('.pdf')?'PDF':'Excel'], par:store.tablette||'', dossier:folderLabel(folder)});
+      logRelais(ch, `${ficheLabel(k)} archivée dans ${fdesc} : « ${base} »`); flushChantier(); saveStore();
+      stage.innerHTML='';
+      stage.appendChild(el('div',{class:'ar-done', html:`<div class="ar-ok">✓ Fiche enregistrée sur l\u2019appareil</div><p><b>${esc(f.name)}</b></p><p>Dans le dossier qui vient de s\u2019ouvrir : <b>+</b> › <b>Charger</b> (ou Importer) › <b>Téléchargements</b> › la fiche. Elle arrive dans le dossier, pas dans les Publications.</p>`}));
+      const reopen=el('button',{class:'btn'+(opened?'':' btn-primary'), html: opened?'Rouvrir le dossier':'Ouvrir le dossier'}); reopen.addEventListener('click',()=>window.open(folder,'_blank','noopener'));
+      const nf=el('button',{class:'btn'+(opened?' btn-primary':''), html:`Nouvelle fiche ${esc(ficheLabel(k))}`}); nf.addEventListener('click',()=>{ ov.remove(); newFiche(k); });
+      go.replaceWith(reopen); send.replaceWith(nf); renderAll();
+    };
+    go.addEventListener('click', ()=>{
+      stage.innerHTML='';
+      if(!xlsxLibsReady(k)){ stage.appendChild(el('p',{class:'rl-err', html:'Modules d\u2019export indisponibles : ouvrez l\u2019application une fois avec du réseau.'})); return; }
+      if(!xlsxPreflight(k)) return;
+      if(ready && rfmt===fmt && rname===safeFileName(ni.value)){ triggerDownload(ready, ready.name); window.open(folder,'_blank','noopener'); done(ready, true); return; }
+      busyRun(go, async ()=>{ const n0=safeFileName(ni.value), buf=await buildXlsxBuffer(k);
+        const f = fmt==='pdf' ? new File([await xpBuildPdf(buf, n0+'.xlsx')], n0+'.pdf', {type:'application/pdf'}) : new File([buf], n0+'.xlsx', {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+        triggerDownload(f, f.name); done(f, false); });
+    });
+    foot.appendChild(go);
+    box.querySelector('.ar-tip').innerHTML=`<b>Destination : ${esc(fdesc)}</b> — « Enregistrer et ouvrir » dépose la fiche sur l\u2019appareil et ouvre ce dossier : <b>+ › Charger</b>, et la fiche y est. <span>« Partager » reste possible (OneDrive).</span>`;
+  }
   send.addEventListener('click',()=>busyRun(send, async ()=>{
     stage.innerHTML='';
     if(!xlsxLibsReady(k)){ stage.appendChild(el('p',{class:'rl-err', html:'Modules d\u2019export indisponibles : ouvrez l\u2019application une fois avec du réseau.'})); return; }
@@ -7108,9 +7166,9 @@ function openArchive(k){
     const buf=await buildXlsxBuffer(k);
     const xlsx=new File([buf], `${base}.xlsx`, {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     const pdf = fmt!=='xlsx' ? new File([await xpBuildPdf(buf, `${base}.xlsx`)], `${base}.pdf`, {type:'application/pdf'}) : null;
-    const want = fmt==='pdf'?[pdf] : fmt==='xlsx'?[xlsx] : [pdf,xlsx];
+    const want = fmt==='pdf' ? [pdf] : [xlsx];
     const can = f => !!(navigator.canShare && navigator.canShare({files:f}));
-    let viaShare = can(want) ? want : (pdf && can([pdf]) ? [pdf] : []);
+    let viaShare = can(want) ? want : [];
     const rest = want.filter(f=>!viaShare.includes(f)); let shared=[];
     try{ if(viaShare.length){ await navigator.share({files:viaShare, title:base, text:base}); shared=viaShare; } }
     catch(e){ if(e && e.name==='AbortError'){ stage.appendChild(el('p',{class:'rl-info', html:'Partage annulé : rien n\u2019a été archivé.'})); return; } rest.unshift(...viaShare); }
