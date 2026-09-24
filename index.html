@@ -425,6 +425,7 @@
   .tol-edit:hover{border-color:var(--teal);background:var(--teal-bg);}
   .field-grid > .fw-2{grid-column:span 2;}
   .field-grid > .fw-all{grid-column:1 / -1;}
+  .ar-setfolder{font-size:12px;padding:5px 12px;}
   .fcq-modal{position:fixed;inset:0;background:rgba(10,22,52,.45);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px;}
   .fcq-dialog{background:var(--panel);border-radius:18px;padding:24px 24px 20px;width:min(620px,100%);max-height:90vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.25);}
   .fcq-dialog h3{margin:0 0 4px;font-size:20px;color:var(--navy);} .fcq-dialog-hint{margin:0 0 16px;font-size:13px;color:var(--ink-soft);}
@@ -6382,7 +6383,7 @@ function applySnapshot(snap){
 }
 function newChantier(nom, periode){
   return {id:'ch-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), reseau:'rer',
-    nom, periode, ligne:'', interstation:'', voies:'', pkDebut:'', pkFin:'', secteur:'', entreprise:'', repEntreprise:'', controleur:'',
+    nom, periode, ligne:'', interstation:'', voies:'', pkDebut:'', pkFin:'', secteur:'', entreprise:'', repEntreprise:'', controleur:'', dossierTeams:'',
     fiches:TABS.map(t=>t.key), snapshot:deepCopy(BLANK), createdAt:Date.now(), updatedAt:Date.now()};
 }
 function loadStore(){
@@ -6585,7 +6586,8 @@ function openChantierForm(ch){
   const fields=[['§','Projet'],['nom','Nom du chantier *','text','Ex. : ITC RVB Branches Est'],['periode','Période','text','Ex. : Automne 2026'],['ligne','Ligne RER','select'],
     ['§','Localisation'],['interstation','Interstation','text','Ex. : Nation - Vincennes'],['voies','Voie(s)','text','Ex. : V2 ou V1, V2'],
     ['pkDebut','PK début','text','Ex. : 12.300'],['pkFin','PK fin','text','Ex. : 13.100'],['secteur','Secteur / lieu','text','Ex. : Val-de-Fontenay'],
-    ['§','Intervenants'],['entreprise','Entreprise','text','Ex. : UNIFER'],['repEntreprise','Signataire entreprise','text','Nom · « Réalisé par »'],['controleur','Signataire RATP','text','Nom · « Visa RATP »']];
+    ['§','Intervenants'],['entreprise','Entreprise','text','Ex. : UNIFER'],['repEntreprise','Signataire entreprise','text','Nom · « Réalisé par »'],['controleur','Signataire RATP','text','Nom · « Visa RATP »'],
+    ['§','Archivage'],['dossierTeams','Dossier Teams d\u2019archivage','text','Lien du dossier : Teams › canal › Fichiers › dossier › … › « Copier le lien »']];
   const inputs={};
   fields.forEach(([k,l,t,ph])=>{
     if(k==='§'){ g.appendChild(el('div',{class:'fcq-sec span2', html:l})); return; }
@@ -6595,7 +6597,7 @@ function openChantierForm(ch){
     else if(k==='nom'){ inp=el('textarea',{rows:'1', class:'fcq-grow'}); inp.value=d[k]||''; if(ph) inp.placeholder=ph;
       const grow=()=>{ inp.style.height='auto'; inp.style.height=inp.scrollHeight+'px'; }; inp.addEventListener('input',grow); setTimeout(grow,0); }
     else { inp=el('input',{type:'text', value:d[k]||''}); if(ph) inp.placeholder=ph; }
-    if(k==='nom') w.classList.add('span2');
+    if(k==='nom' || k==='dossierTeams') w.classList.add('span2');
     inputs[k]=inp; w.appendChild(inp); g.appendChild(w);
   });
   box.appendChild(g);
@@ -6605,6 +6607,8 @@ function openChantierForm(ch){
   ok.addEventListener('click',()=>{
     const v=Object.fromEntries(Object.entries(inputs).map(([k,i])=>[k,i.value.trim()]));
     if(!v.nom){ inputs.nom.focus(); inputs.nom.classList.add('input-oob'); return; }
+    if(v.dossierTeams && !/^https:\/\/\S+$/i.test(v.dossierTeams)){ inputs.dossierTeams.focus(); inputs.dossierTeams.classList.add('input-oob');
+      alert("Le dossier d'archivage doit être un lien commençant par https:// — dans Teams : canal › Fichiers › dossier › … › « Copier le lien »."); return; }
     const target = isNew ? d : store.chantiers.find(c=>c.id===ch.id);
     Object.assign(target, v, {updatedAt:Date.now()});
     if(isNew) store.chantiers.push(target);
@@ -6677,8 +6681,8 @@ function tabletName(){
   }
   return store.tablette;
 }
-function chMeta(ch){ const {id,nom,periode,ligne,interstation,voies,pkDebut,pkFin,secteur,entreprise,repEntreprise,controleur,fiches}=ch;
-  return {id,nom,periode,ligne,interstation,voies,pkDebut,pkFin,secteur,entreprise,repEntreprise,controleur,fiches}; }
+function chMeta(ch){ const {id,nom,periode,ligne,interstation,voies,pkDebut,pkFin,secteur,entreprise,repEntreprise,controleur,dossierTeams,fiches}=ch;
+  return {id,nom,periode,ligne,interstation,voies,pkDebut,pkFin,secteur,entreprise,repEntreprise,controleur,dossierTeams,fiches}; }
 function logRelais(ch, texte){ (ch.historique=ch.historique||[]).push({at:Date.now(), texte}); }
 
 /* Signatures pour le QR : codées en noir et blanc, un bit par pixel, compressées — quelques
@@ -7011,6 +7015,14 @@ async function writeToDir(h, files){
   for(const f of files){ const fh=await h.getFileHandle(f.name,{create:true}); const w=await fh.createWritable(); await w.write(f); await w.close(); }
 }
 
+/* nom lisible d'un dossier Teams / SharePoint, tiré de son lien quand c'est possible */
+function folderLabel(u){
+  try{ const x=new URL(u);
+    const id=x.searchParams.get('id') || x.searchParams.get('RootFolder') || '';
+    const parts=decodeURIComponent(id || x.pathname).split('/').filter(Boolean), last=parts[parts.length-1]||'';
+    return (last && !/^[:a-z]{1,3}$/i.test(last) && last.length<80 && !/\.aspx$/i.test(last)) ? last : 'Dossier Teams du chantier';
+  }catch(e){ return 'Dossier Teams du chantier'; }
+}
 function ficheLabel(k){ const t=TABS.find(x=>x.key===k); return t?t.label:k; }
 function archiveOf(ch, k){ return (ch.archives||[]).filter(a=>a.key===k && a.docId===docId(k)).pop(); }
 function newFiche(k){
@@ -7066,7 +7078,42 @@ function openArchive(k){
     const nf=el('button',{class:'btn btn-primary', html:`Nouvelle fiche ${esc(ficheLabel(k))}`}); nf.addEventListener('click',()=>{ ov.remove(); newFiche(k); });
     saveAs.replaceWith(nf); renderAll();
   }));
-  if(!DIRX && !IS_MOBILE) foot.appendChild(saveAs);
+  const folder = !DIRX ? (ch.dossierTeams||'') : '';
+  if(!DIRX && !IS_MOBILE && !folder) foot.appendChild(saveAs);
+  if(folder){
+    send.classList.remove('btn-primary');
+    const hint=box.querySelector('.fcq-dialog-hint'); if(hint) hint.innerHTML=hint.innerHTML.replace('puis partagez.','puis enregistrez : Teams s\u2019ouvre sur le dossier du chantier.');
+    tip.innerHTML=`<b>Dossier d\u2019archivage : ${esc(folderLabel(folder))}</b><span>Un toucher enregistre la fiche et ouvre ce dossier dans Teams. Il ne reste qu\u2019à faire <b>+ › Charger › Téléchargements</b> et à choisir la fiche.</span>`;
+    // fichiers préparés à l'avance : le toucher peut alors enregistrer ET ouvrir Teams dans le même geste
+    let ready=null, fmtReady=null;
+    const prep=()=>{ ready=null; const f0=fmt; if(!xlsxLibsReady(k)) return; buildFiles().then(fs=>{ if(fmt===f0){ ready=fs; fmtReady=f0; } }).catch(()=>{}); };
+    ch3.addEventListener('click', ()=>setTimeout(prep,0)); prep();
+    const go=el('button',{class:'btn btn-primary', html:'Enregistrer et ouvrir le dossier Teams'});
+    const done=(files, openedNow)=>{
+      finish(files.map(f=>f.name.endsWith('.pdf')?'PDF':'Excel'), folderLabel(folder));
+      stage.innerHTML='';
+      stage.appendChild(el('div',{class:'ar-done', html:`<div class="ar-ok">✓ ${files.length>1?'Fiches enregistrées':'Fiche enregistrée'} sur la tablette</div>
+        <p>${files.map(f=>`<b>${esc(f.name)}</b>`).join(', ')}</p><p>Dans Teams : <b>+</b> › <b>Charger</b> › <b>Téléchargements</b> › ${files.length>1?'les deux fichiers':'le fichier'}.</p>`}));
+      const reopen=el('button',{class:'btn'+(openedNow?'':' btn-primary'), html: openedNow ? 'Rouvrir le dossier Teams' : 'Ouvrir le dossier Teams'});
+      reopen.addEventListener('click',()=>window.open(folder,'_blank','noopener'));
+      const nf=el('button',{class:'btn'+(openedNow?' btn-primary':''), html:`Nouvelle fiche ${esc(ficheLabel(k))}`}); nf.addEventListener('click',()=>{ ov.remove(); newFiche(k); });
+      go.replaceWith(reopen); send.replaceWith(nf); renderAll();
+    };
+    go.addEventListener('click', ()=>{
+      stage.innerHTML='';
+      if(!xlsxLibsReady(k)){ stage.appendChild(el('p',{class:'rl-err', html:'Modules d\u2019export indisponibles : ouvrez l\u2019application une fois avec du réseau.'})); return; }
+      if(!xlsxPreflight(k)) return;
+      if(ready && fmtReady===fmt){                      // même geste : enregistrement + ouverture du dossier
+        ready.forEach(f=>triggerDownload(f, f.name)); window.open(folder,'_blank','noopener'); done(ready, true); return;
+      }
+      busyRun(go, async ()=>{ const fs=await buildFiles(); fs.forEach(f=>triggerDownload(f, f.name)); done(fs, false); });
+    });
+    foot.appendChild(go);
+  } else if(!DIRX){
+    const def=el('button',{class:'btn ar-setfolder', html:'Définir le dossier Teams du chantier'});
+    def.addEventListener('click',()=>{ ov.remove(); openChantierForm(ch); });
+    tip.appendChild(el('div',{style:'margin-top:8px'})).appendChild(def);
+  }
   if(DIRX){
     const dirBtn=el('button',{class:'btn btn-primary', html:'Enregistrer dans le dossier'}), change=el('button',{class:'btn ar-change', html:'Changer de dossier'});
     const dirInfo=el('div',{class:'ar-dir'}); tip.after(dirInfo);
