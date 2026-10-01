@@ -541,7 +541,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     .btn{min-height:44px;}
     .tabs .tab-btn{min-height:46px;}
   }
-  .masthead-saved{font-size:11.5px;font-weight:700;color:#7FE0CF;white-space:nowrap;margin-left:10px;} .masthead-saved.ko{color:#FFB4A2;}
+  .masthead-saved{font-size:11.5px;font-weight:700;color:#7FE0CF;white-space:nowrap;margin-left:10px;display:inline-block;min-width:118px;text-align:right;}   /* largeur fixe : le texte qui change ne décale pas les boutons voisins */ .masthead-saved.ko{color:#FFB4A2;}
   .app-version{font-weight:700;color:var(--ink-soft);}
   .pv-modal{padding:0;align-items:stretch;}
   .pv-box{display:flex;flex-direction:column;width:100%;height:100%;background:#F4F6FA;}
@@ -630,10 +630,17 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   .nb-aut{margin:0 0 10px;padding:10px 14px;border-left:4px solid var(--gold,#E2A400);background:#FFF8E6;border-radius:8px;font-size:13.5px;color:var(--ink);}
   .hist-bottom{margin:18px 0 6px;} .cb-hist-actions{justify-content:flex-end;border-top:1px solid var(--line)!important;padding-top:10px!important;}
   .cb-hist-clear{color:var(--bad);border-color:#F2C4BD;}
+  #clock{display:inline-block;min-width:190px;text-align:right;font-variant-numeric:tabular-nums;}
   .masthead-amber{height:34px;padding:0 14px;border-radius:999px;border:1.5px solid rgba(255,255,255,.55);background:rgba(255,255,255,.1);color:#fff;font:inherit;font-size:12.5px;font-weight:800;letter-spacing:.3px;cursor:pointer;white-space:nowrap;margin-right:8px;}
   .masthead-amber:hover{background:rgba(255,255,255,.2);}
   .amb-file{display:flex;align-items:center;gap:12px;flex-wrap:wrap;} .amb-info{flex:1;min-width:220px;display:flex;flex-direction:column;font-size:12.5px;color:var(--ink-soft);} .amb-info b{color:var(--navy);}
   @media (pointer:coarse){ .masthead-amber{height:40px;} }
+  .amb-sigs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;} .amb-sig{border:1px solid var(--line);border-radius:10px;padding:10px;background:#FAFBFD;}
+  .amb-sig-t{font-size:11.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--navy);margin-bottom:6px;}
+  .amb-sig-r{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:8px;} .amb-pad{border:1px dashed var(--line-strong);border-radius:8px;background:#fff;}
+  .arx textarea.arx-name{margin-top:10px;resize:vertical;}
+  @media (max-width:640px){ .amb-sigs{grid-template-columns:1fr;} }
+  .fcq-dialog.arx{max-height:calc(100vh - 32px);overflow:auto;}
   .fcq-modal{position:fixed;inset:0;background:rgba(10,22,52,.45);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px;}
   .fcq-dialog{background:var(--panel);border-radius:18px;padding:24px 24px 20px;width:min(620px,100%);max-height:90vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.25);}
   .fcq-dialog h3{margin:0 0 4px;font-size:20px;color:var(--navy);} .fcq-dialog-hint{margin:0 0 16px;font-size:13px;color:var(--ink-soft);}
@@ -8375,6 +8382,8 @@ function buildAmberSheet(ws, wb, A, kind, extra={}){
   put(S+1,1,1,'Par :',{h:'right'}); put(S+1,2,4,extra.nom1||'',{h:'left',fill:CY}); put(S+1,6,7,'Par :',{h:'right'}); put(S+1,8,NC,extra.nom2||'',{h:'left',fill:CY});
   put(S+2,1,1,'Signature :',{h:'right'}); put(S+2,6,7,'Signature :',{h:'right'}); ws.getRow(S+2).height=30;
   [[S,2,4],[S+1,2,4],[S,8,NC],[S+1,8,NC]].forEach(([q,a,b])=>{ for(let c=a;c<=b;c++) ws.getCell(q,c).border={bottom:{style:'dotted',color:{argb:K}}}; });
+  [['sig1',1.1],['sig2',7.1]].forEach(([k,col])=>{ const f=extra[k] && typeof sigFit==='function' ? sigFit(extra[k],150,34) : null;
+    if(f){ const id=wb.addImage({base64:f.b64, extension:'png'}); ws.addImage(id,{tl:{col, row:S+1+0.08}, ext:{width:f.width,height:f.height}, editAs:'oneCell'}); } });
   for(let r1=D;r1<=S+2;r1++) for(let c=1;c<=NC;c++){ const x=ws.getCell(r1,c), b={...(x.border||{})}; if(r1===D){b.top=Md; b.bottom=T;} if(r1===D+1) b.bottom=T; if(r1===S+2) b.bottom=Md; if(c===1) b.left=Md; if(c===NC) b.right=Md; if(c===6 && r1>D) b.left=T; x.border=b; }
   // cartouche RATP
   // légende RATP
@@ -8388,13 +8397,36 @@ function buildAmberSheet(ws, wb, A, kind, extra={}){
   ws.pageSetup.printArea=`A1:J${C+2}`;
 }
 
+/* Aperçu d'un classeur déjà construit (même rendu que le PDF) */
+async function previewBuffer(buf, label, name){
+  const ov=el('div',{class:'fcq-modal pv-modal'}), box=el('div',{class:'pv-box'}); ov.style.zIndex='1300';
+  const head=el('div',{class:'pv-head'}); head.innerHTML=`<div><b>Aperçu</b><span class="pv-sub">${esc(label)} — identique au PDF</span></div>`;
+  const acts=el('div',{class:'btn-row'}); const zoom=el('button',{class:'btn', html:'Zoom 100 %'}), close=el('button',{class:'btn btn-primary', html:'Fermer'});
+  acts.append(zoom, close); head.appendChild(acts); box.appendChild(head);
+  const body=el('div',{class:'pv-body'}); const fr=el('iframe',{class:'pv-frame', title:'Aperçu de la fiche'}); body.appendChild(fr); box.appendChild(body);
+  ov.appendChild(box); document.body.appendChild(ov); close.addEventListener('click',()=>ov.remove());
+  try{
+    const r=await xpBuildPrintHTML(buf, name+'.xlsx'), fit=xpFitTexts.toString();
+    fr.srcdoc=`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>${XP_CSS}
+      html,body{margin:0;background:#8D97A8;} .xp-root{transform-origin:0 0;} .xp-page{box-shadow:0 6px 24px rgba(0,0,0,.35);margin:14px auto;} </style></head>
+      <body><div class="xp-root">${r.html}</div><script>(${fit})(document);<\/script></body></html>`;
+    let fitMode=true;
+    const apply=()=>{ const d=fr.contentDocument; if(!d) return; const root=d.querySelector('.xp-root'), page=d.querySelector('.xp-page'); if(!root||!page) return;
+      const pw=page.getBoundingClientRect().width/(root._k||1), s=fitMode?Math.min(1,(fr.clientWidth-28)/pw):1; root._k=s; root.style.transform=`scale(${s})`; root.style.width=(fr.clientWidth/s)+'px'; d.body.style.height=(root.getBoundingClientRect().height+20)+'px'; };
+    fr.addEventListener('load', apply); zoom.addEventListener('click',()=>{ fitMode=!fitMode; zoom.textContent=fitMode?'Zoom 100 %':'Ajuster à la largeur'; apply(); }); window.addEventListener('resize', apply);
+  }catch(e){ body.innerHTML=`<p class="rl-err" style="padding:20px">Aperçu impossible : ${esc(e.message||e)}</p>`; }
+}
+
 /* ---- Bouton « Gauche AMBER » : HTML du chariot → fiche Excel et PDF (valeurs reprises sans recalcul) ---- */
 function openAmberTool(){
-  const st={file:null, A:null, chantier:(typeof currentChantier==='function' && currentChantier() && appView==='chantier') ? currentChantier().nom : '', kind:'alignement'};
+  const chOpen=(typeof currentChantier==='function' && appView==='chantier') ? currentChantier() : null;
+  const st={file:null, A:null, chantier: chOpen ? chOpen.nom : '', kind:'alignement', decision:'', obs:'', nom1:'', d1:'', sig1:'', nom2: chOpen&&chOpen.controleur ? chOpen.controleur : '', d2:new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10), sig2:''};
+  const isoOf=fr=>{ const m=String(fr||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/); return m?`${m[3]}-${m[2]}-${m[1]}`:''; };
   const ov=el('div',{class:'fcq-modal'}), box=el('div',{class:'fcq-dialog arx'}); ov.appendChild(box); document.body.appendChild(ov);
   const close=()=>ov.remove();
   const fname=()=>{ const M=st.A.M; return safeFileName(['Gauche AMBER', st.kind==='courbe'?'Courbe clothoïde':'Alignement', st.chantier.trim(), M.track, M.pkDeb&&M.pkFin?`PK ${M.pkDeb} à ${M.pkFin}`:'', (M.date||'').replace(/\//g,'-')].filter(Boolean).join(' – ')); };
-  async function build(){ const wb=new ExcelJS.Workbook(); wb.creator='FCQ Digital'; buildAmberSheet(wb.addWorksheet('Gauche AMBER'), wb, st.A, st.kind, {chantier:st.chantier.trim()});
+  const extra=()=>({chantier:st.chantier.trim(), decision:st.decision, obs:wrapObs(st.obs,95,3), date1:st.d1?fmtDateFR(st.d1):'', nom1:st.nom1.trim(), sig1:st.sig1, date2:st.d2?fmtDateFR(st.d2):'', nom2:st.nom2.trim(), sig2:st.sig2});
+  async function build(){ const wb=new ExcelJS.Workbook(); wb.creator='FCQ Digital'; buildAmberSheet(wb.addWorksheet('Gauche AMBER'), wb, st.A, st.kind, extra());
     const buf=new Uint8Array(await wb.xlsx.writeBuffer()); return {buf, pdf: await xpBuildPdf(buf, fname()+'.xlsx')}; }
   function view1(){
     box.innerHTML='';
@@ -8407,7 +8439,8 @@ function openAmberTool(){
     if(st.A){ const M=st.A.M; info.innerHTML=`<b>${esc(st.file.name)}</b><span>${esc(M.route)} · voie ${esc(M.track)} · PK ${esc(M.pkDeb)} à ${esc(M.pkFin)} · ${esc(M.date)} ${esc(M.h0)} · ${esc(M.op||'—')} · <b>${st.A.rows.length} points</b> · gauche sur ${[M.base1,M.base2].filter(v=>v!==null).map(v=>String(v).replace(/\.0$/,'')+' m').join(' et ')}</span>`; }
     else info.innerHTML='<span>Le fichier HTML exporté par le chariot (dossier Amber › Jobs).</span>';
     inp.addEventListener('change',()=>{ const f=inp.files&&inp.files[0]; if(!f) return; const rd=new FileReader();
-      rd.onload=()=>{ const A=amberRead(String(rd.result||'')); if(!A){ uiAlert("Ce fichier n'est pas un relevé AMBER : aucun tableau de mesures n'a été trouvé.",'Fichier non reconnu'); return; } st.file=f; st.A=A; view1(); };
+      rd.onload=()=>{ const A=amberRead(String(rd.result||'')); if(!A){ uiAlert("Ce fichier n'est pas un relevé AMBER : aucun tableau de mesures n'a été trouvé.",'Fichier non reconnu'); return; }
+        st.file=f; st.A=A; if(!st.nom1) st.nom1=A.M.op||''; if(!st.d1) st.d1=isoOf(A.M.date); view1(); };
       rd.readAsText(f,'utf-8'); });
     const row=el('div',{class:'amb-file'}); row.append(pick, inp, info); s1.appendChild(row); box.appendChild(s1);
     // 2 — chantier
@@ -8421,23 +8454,40 @@ function openAmberTool(){
     const seg=el('div',{class:'arx-seg'});
     [['alignement','Alignement'],['courbe','Courbe / clothoïde']].forEach(([v,l])=>{ const b=el('button',{class:'arx-seg-b'+(st.kind===v?' on':''), html:l}); b.addEventListener('click',()=>{ st.kind=v; seg.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); }); seg.appendChild(b); });
     s3.appendChild(seg); box.appendChild(s3);
+    // 4 — décision et signatures
+    const s4=el('div',{class:'arx-step'}); s4.innerHTML='<div class="arx-n">4</div><div class="arx-t">Décision et signatures</div>';
+    const dec=el('div',{class:'arx-seg'});
+    [['c','☑ Conforme'],['nc','☑ Non-conforme']].forEach(([v,l])=>{ const b=el('button',{class:'arx-seg-b'+(st.decision===v?' on':''), html:l.replace('☑',st.decision===v?'☑':'☐')});
+      b.addEventListener('click',()=>{ st.decision = st.decision===v ? '' : v; dec.querySelectorAll('button').forEach((x,i)=>{ const vv=i?'nc':'c'; x.classList.toggle('on',st.decision===vv); x.textContent=(st.decision===vv?'☑ ':'☐ ')+(vv==='c'?'Conforme':'Non-conforme'); }); }); dec.appendChild(b); });
+    const obs=el('textarea',{rows:'2', class:'arx-name', placeholder:'Observations (facultatif)'}); obs.value=st.obs; obs.addEventListener('input',()=>{ st.obs=obs.value; });
+    const sg=el('div',{class:'amb-sigs'});
+    [['Fait par','nom1','d1','sig1'],['Vérifié par','nom2','d2','sig2']].forEach(([t,kn,kd,ks])=>{ const c=el('div',{class:'amb-sig'}); c.appendChild(el('div',{class:'amb-sig-t', html:t}));
+      const r=el('div',{class:'amb-sig-r'}); const ni=el('input',{type:'text', class:'arx-name', placeholder:'Nom'}); ni.value=st[kn]; ni.addEventListener('input',()=>{ st[kn]=ni.value; });
+      const di=el('input',{type:'date', class:'arx-name'}); di.value=st[kd]; di.addEventListener('input',()=>{ st[kd]=di.value; }); r.append(ni,di); c.appendChild(r);
+      const cv=el('canvas',{class:'sig-canvas'}); const wrap=el('div',{class:'amb-pad'}); wrap.appendChild(cv);
+      const clr=el('button',{type:'button', class:'arx-link', html:'Effacer la signature'}); c.append(wrap, clr); sg.appendChild(c);
+      setTimeout(()=>{ const pad=attachSignaturePad(cv,{initial:st[ks], onChange:u=>{ st[ks]=u; if(u && !st[kd]){ st[kd]=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10); di.value=st[kd]; } }}); clr.addEventListener('click',()=>pad.clear()); },0); });
+    s4.append(dec, obs, sg); box.appendChild(s4);
     const foot=el('div',{class:'arx-foot'}); const cancel=el('button',{class:'btn', html:'Annuler'}); cancel.addEventListener('click',close);
+    const pv=el('button',{class:'btn', html:'Aperçu'}); pv.addEventListener('click',()=>busyRun(pv, async ()=>{ const r=await build(); previewBuffer(r.buf, 'Gauche AMBER', fname()); }));
     const go=el('button',{class:'btn btn-primary arx-go', html:'Créer la fiche'});
     const hint=el('span',{class:'arx-help'});
-    const refresh=()=>{ const ok=!!st.A && st.chantier.trim().length>0; go.disabled=!ok; hint.textContent = !st.A ? 'Choisissez d’abord le fichier.' : (!st.chantier.trim() ? 'Indiquez le nom du chantier.' : ''); };
+    let refresh=()=>{ const ok=!!st.A && st.chantier.trim().length>0; go.disabled=!ok; hint.textContent = !st.A ? 'Choisissez d’abord le fichier.' : (!st.chantier.trim() ? 'Indiquez le nom du chantier.' : ''); };
     go.addEventListener('click',()=>busyRun(go, async ()=>{ const r=await build(); view2(r); }));
-    foot.append(hint, el('span',{class:'arx-sp'}), cancel, go); box.appendChild(foot); refresh();
+    foot.append(hint, el('span',{class:'arx-sp'}), cancel, pv, go); box.appendChild(foot);
+    const _r=refresh; refresh=()=>{ _r(); pv.disabled=go.disabled; }; refresh();
     if(st.A) setTimeout(()=>ci.focus(),0);
   }
   function view2(r){
     const name=fname(), x=new File([r.buf], name+'.xlsx', {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), p=new File([r.pdf], name+'.pdf', {type:'application/pdf'});
     const ch=(store.chantiers||[]).find(c=>c.nom===st.chantier.trim()); if(ch){ logRelais(ch, `Relevé AMBER converti — ${st.A.rows.length} points, PK ${st.A.M.pkDeb} à ${st.A.M.pkFin}, voie ${st.A.M.track}`); saveStore(); if(typeof renderHistBottom==='function') renderHistBottom(); }
     box.innerHTML=`<div class="arx-ok"><div class="arx-okico">✓</div><h3>Fiche créée</h3><div class="arx-file">${esc(name)}</div></div>
-      <ol class="arx-steps"><li><span>${st.A.rows.length} points repris du chariot, sans recalcul</span></li><li><span>Chantier : <b>${esc(st.chantier.trim())}</b></span></li><li><span>À compléter sur la fiche : commentaires, observations, décision, signatures</span></li></ol>`;
+      <ol class="arx-steps"><li><span>${st.A.rows.length} points repris du chariot, sans recalcul</span></li><li><span>Chantier : <b>${esc(st.chantier.trim())}</b></span></li><li><span>Décision : <b>${st.decision==='c'?'CONFORME':st.decision==='nc'?'NON-CONFORME':'non cochée'}</b> · fait par ${esc(st.nom1||'—')} · vérifié par ${esc(st.nom2||'—')}</span></li></ol>`;
     const foot=el('div',{class:'arx-foot'});
     const bp=el('button',{class:'btn', html:'PDF'}); bp.addEventListener('click',()=>triggerDownload(p, p.name));
     const bx=el('button',{class:'btn', html:'Excel'}); bx.addEventListener('click',()=>triggerDownload(x, x.name));
-    foot.append(bp, bx);
+    const bv=el('button',{class:'btn', html:'Aperçu'}); bv.addEventListener('click',()=>previewBuffer(r.buf, 'Gauche AMBER', name));
+    foot.append(bv, bp, bx);
     if(navigator.canShare && navigator.canShare({files:[p]})){ const sh=el('button',{class:'btn', html:'Partager le PDF'}); sh.addEventListener('click',()=>navigator.share({files:[p], title:p.name}).catch(()=>{})); foot.appendChild(sh); }
     foot.appendChild(el('span',{class:'arx-sp'}));
     const again=el('button',{class:'btn', html:'Autre relevé'}); again.addEventListener('click',()=>{ st.file=null; st.A=null; view1(); });
