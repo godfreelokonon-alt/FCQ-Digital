@@ -8386,12 +8386,9 @@ function buildAmberSheet(ws, wb, A, kind, extra={}){
     if(f){ const id=wb.addImage({base64:f.b64, extension:'png'}); ws.addImage(id,{tl:{col, row:S+1+0.08}, ext:{width:f.width,height:f.height}, editAs:'oneCell'}); } });
   for(let r1=D;r1<=S+2;r1++) for(let c=1;c<=NC;c++){ const x=ws.getCell(r1,c), b={...(x.border||{})}; if(r1===D){b.top=Md; b.bottom=T;} if(r1===D+1) b.bottom=T; if(r1===S+2) b.bottom=Md; if(c===1) b.left=Md; if(c===NC) b.right=Md; if(c===6 && r1>D) b.left=T; x.border=b; }
   // cartouche RATP
-  // légende RATP
-  const G=S+4; put(G,3,3,'',{fill:YL}); put(G,4,5,'calcul automatique',{size:8,h:'left'}); put(G,7,7,'',{fill:CY}); put(G,8,9,'saisie',{size:8,h:'left'});
-  [[G,3],[G,7]].forEach(([q,c])=>ws.getCell(q,c).border={top:T,bottom:T,left:T,right:T});
-  const C=G+2;
+  const C=S+4;
   put(C,1,NC,"Ce document n'est pas en diffusion contrôlée.",{h:'left',size:8});
-  put(C+1,1,2,'RATP - GDI - VOIE',{bold:true,size:8}); put(C+1,3,4,'Fiche de contrôle',{bold:true,size:8}); put(C+1,5,6,'RER',{bold:true,size:8}); put(C+1,7,NC,'Relevé AMBER',{bold:true,size:8});
+  put(C+1,1,2,'RATP / GDI / OIT / EF / Voie',{bold:true,size:8}); put(C+1,3,4,'Fiche de contrôle',{bold:true,size:8}); put(C+1,5,6,'RER',{bold:true,size:8}); put(C+1,7,NC,'Relevé AMBER',{bold:true,size:8});
   put(C+2,1,6,'CONTROLE DU GAUCHE SUR LE RER',{bold:true,size:8,h:'left'}); put(C+2,7,NC,'Date de diffusion :',{bold:true,size:8,h:'left'});
   for(let q=C+1;q<=C+2;q++) for(let c=1;c<=NC;c++) ws.getCell(q,c).border={top:T,bottom:T,left:T,right:T};
   ws.pageSetup.printArea=`A1:J${C+2}`;
