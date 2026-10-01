@@ -590,13 +590,13 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   .jic-sch .jic-lab{font-size:12px;font-weight:800;fill:#9E1F0E;text-anchor:middle;letter-spacing:.5px;}
   .voie-pick{margin-bottom:6px;} .voie-pick .voie-other{font-style:italic;}
   .field-grid > div .voie-pick + input{margin-top:2px;}
-  /* ---- FC-RAIL-61 ---- */
+  /* ---- FC-RAIL-31 ---- */
   .rail-legend{display:flex;flex-direction:column;gap:12px;}
   .rail-notes{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;font-weight:600;color:var(--navy);}
   .rail-imgs{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;}
   .rail-imgs figure{margin:0;text-align:center;} .rail-imgs svg{width:140px;height:auto;display:block;margin:0 auto;} .rail-imgs figcaption{font-size:11.5px;font-weight:700;color:var(--ink-soft);margin-top:2px;}
   .rail-codes{display:flex;flex-direction:column;gap:6px;font-size:12.5px;}
-  .rail-codes div{display:flex;align-items:center;gap:10px;} .rail-codes i{font-style:normal;font-weight:800;font-size:11.5px;padding:3px 9px;border-radius:5px;min-width:150px;text-align:center;}
+  .rail-codes div{display:flex;align-items:center;gap:10px;} .rail-codes i{font-style:normal;font-weight:800;font-size:11.5px;padding:3px 9px;border-radius:5px;min-width:150px;text-align:center;color:#000;}
   .rail-table th{text-align:center;} .rail-table th.z{width:52px;} .rail-table td.rail-cell{padding:2px 3px;} .rail-table td.rail-cell input{text-align:center;font-weight:800;font-size:15px;}
   .rail-table select.rail-pos{font:inherit;font-size:12.5px;padding:6px 4px;border:1px solid var(--line-strong);border-radius:8px;background:#fff;width:112px;}
   .rail-table th.fpos{font-size:10.5px;font-weight:600;line-height:1.2;max-width:112px;}
@@ -605,7 +605,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   .rail-key{font:inherit;font-size:20px;font-weight:800;min-width:56px;min-height:52px;border:1.5px solid var(--line-strong);border-radius:10px;background:#fff;color:var(--navy);cursor:pointer;}
   .rail-key:active{background:var(--teal-bg);border-color:var(--teal);} .rail-key.nav{font-size:14px;font-weight:700;color:var(--ink-soft);}
   .rail-table input.rail-pk{font-weight:700;min-width:70px;}
-  .rail-table td.rail-lim input{background:#FFF200;} .rail-table td.rail-sec input{background:#FF9900;} .rail-table td.rail-gras input{background:#FF0000;color:#fff;} .rail-table td.rail-grasA input{background:#3366FF;color:#fff;}
+  .rail-table td.rail-lim input{background:#FFFF00;} .rail-table td.rail-sec input{background:#FF9900;} .rail-table td.rail-gras input{background:#FF0000;color:#000;} .rail-table td.rail-grasA3 input{background:#99CCFF;color:#000;} .rail-table td.rail-grasA4 input{background:#3366FF;color:#000;}
+  .rail-codes i.two{display:inline-flex;padding:0;overflow:hidden;min-width:150px;} .rail-codes i.two b{flex:1;padding:3px 6px;font-weight:800;text-align:center;color:#000;}
   .rail-act{white-space:nowrap;} .btn-mini{font:inherit;font-size:15px;font-weight:800;border:1px solid var(--line-strong);background:#fff;border-radius:8px;padding:4px 9px;margin-right:6px;cursor:pointer;color:var(--navy);} .btn-mini:disabled{opacity:.35;cursor:default;}
   .rail-synth{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px;font-size:12.5px;}
   .rail-progress{font-weight:700;color:var(--navy);margin-right:6px;}
@@ -626,6 +627,13 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   .cb-hist-list{display:none;list-style:none;margin:0;padding:4px 12px 10px;border-top:1px solid var(--line);} .cb-hist.open .cb-hist-list{display:block;}
   .cb-hist-list li{display:flex;gap:10px;padding:5px 0;font-size:12.5px;color:var(--ink);border-top:1px dashed var(--line);overflow-wrap:anywhere;} .cb-hist-list li:first-child{border-top:0;}
   .cb-hist-d{flex:none;font-family:var(--mono,monospace);font-size:11.5px;color:var(--ink-soft);width:92px;} .cb-hist-more{color:var(--ink-soft);font-style:italic;}
+  .nb-aut{margin:0 0 10px;padding:10px 14px;border-left:4px solid var(--gold,#E2A400);background:#FFF8E6;border-radius:8px;font-size:13.5px;color:var(--ink);}
+  .hist-bottom{margin:18px 0 6px;} .cb-hist-actions{justify-content:flex-end;border-top:1px solid var(--line)!important;padding-top:10px!important;}
+  .cb-hist-clear{color:var(--bad);border-color:#F2C4BD;}
+  .masthead-amber{height:34px;padding:0 14px;border-radius:999px;border:1.5px solid rgba(255,255,255,.55);background:rgba(255,255,255,.1);color:#fff;font:inherit;font-size:12.5px;font-weight:800;letter-spacing:.3px;cursor:pointer;white-space:nowrap;margin-right:8px;}
+  .masthead-amber:hover{background:rgba(255,255,255,.2);}
+  .amb-file{display:flex;align-items:center;gap:12px;flex-wrap:wrap;} .amb-info{flex:1;min-width:220px;display:flex;flex-direction:column;font-size:12.5px;color:var(--ink-soft);} .amb-info b{color:var(--navy);}
+  @media (pointer:coarse){ .masthead-amber{height:40px;} }
   .fcq-modal{position:fixed;inset:0;background:rgba(10,22,52,.45);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px;}
   .fcq-dialog{background:var(--panel);border-radius:18px;padding:24px 24px 20px;width:min(620px,100%);max-height:90vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.25);}
   .fcq-dialog h3{margin:0 0 4px;font-size:20px;color:var(--navy);} .fcq-dialog-hint{margin:0 0 16px;font-size:13px;color:var(--ink-soft);}
@@ -1069,6 +1077,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <div class="masthead-right">
       <div class="masthead-docid" id="mastheadDocId" title="Identifiant unique de la fiche active"></div>
       <div class="masthead-saved" id="mastheadSaved" title="Tout est enregistré automatiquement dans la tablette"></div>
+      <button id="amberBtn" class="masthead-amber" type="button" title="Relevé du chariot AMBER → fiche Excel et PDF" onclick="openAmberTool()">Gauche AMBER</button>
       <button id="helpBtn" class="masthead-help" type="button" title="Comment ça marche" aria-label="Aide" onclick="openGuide()">?</button>
       <div class="sub" id="clock" style="font-style:normal;"></div>
       <button id="saveSessionBtn" class="btn" style="font-size:11.5px;padding:7px 12px;" title="Sauvegarder toutes les fiches en cours dans un fichier">💾 Sauvegarder</button>
@@ -1084,8 +1093,9 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   <div id="progress-host"></div>
   <div class="tabs" id="tabs"></div>
   <div id="tab-content"></div>
+  <div id="hist-bottom" class="hist-bottom"></div>
 
-  <footer><span class="app-version">FCQ Digital · version du 29/09/2026 (2)</span> · Les données restent dans la tablette, rien n'est envoyé à un serveur. Chaque chantier est enregistré automatiquement ; « Sauvegarder » en fait en plus une copie dans un fichier, à conserver ou à transmettre.</footer>
+  <footer><span class="app-version">FCQ Digital · version du 02/10/2026</span> · Les données restent dans la tablette, rien n'est envoyé à un serveur. Chaque chantier est enregistré automatiquement ; « Sauvegarder » en fait en plus une copie dans un fichier, à conserver ou à transmettre.</footer>
 </div>
 
 <div id="settingsOverlay" class="modal-overlay" hidden>
@@ -3260,9 +3270,9 @@ function buildGeo61Sheet(ws, wb, sheetIdx){
       geo61Label(gi)+'=',
       num(row.devers)!==null?num(row.devers):row.devers,
       geo61Lbl3(gi),
-      (gi>=1)?{formula:`IF($S$11=1,IF(OR(COUNTBLANK(${dCol}${r})=1,COUNTBLANK(${ref(gi-1,dCol)})=1)," ",ABS(${dCol}${r}-${ref(gi-1,dCol)}))," ")`}:null,
+      (gi>=1)?{formula:`IF($S$11=1,IF(OR(COUNTBLANK(${dCol}${r})=1,COUNTBLANK(${ref(gi-1,dCol)})=1)," ",ROUND(ABS(${dCol}${r}-${ref(gi-1,dCol)}),1))," ")`}:null,
       geo61Lbl18(gi),
-      (gi>=6)?{formula:`IF($S$11=1,IF(OR(COUNTBLANK(${dCol}${r})=1,COUNTBLANK(${ref(gi-6,dCol)})=1)," ",ABS(${dCol}${r}-${ref(gi-6,dCol)}))," ")`}:null
+      (gi>=6)?{formula:`IF($S$11=1,IF(OR(COUNTBLANK(${dCol}${r})=1,COUNTBLANK(${ref(gi-6,dCol)})=1)," ",ROUND(ABS(${dCol}${r}-${ref(gi-6,dCol)}),1))," ")`}:null
     ];
     G61.blocks.forEach((b,bi)=>{
       // les cellules-formules sont alignées en bas sur la fiche source
@@ -3482,14 +3492,14 @@ function buildCourbeSheet(ws, wb, sheetIdx){
       cbLabel(gi)+'  =',
       num(row.devers)!==null?num(row.devers):row.devers,
       cbOp(gi,1,true),
-      gi>=1 ? {formula:guard([`${TH}${r}`,ref(gi-1,TH)], `${TH}${r}-${ref(gi-1,TH)}`)} : null,
+      gi>=1 ? {formula:guard([`${TH}${r}`,ref(gi-1,TH)], `ROUND(${ref(gi-1,TH)}-${TH}${r},1)`)} : null,
       cbOp(gi,1,false),
-      gi>=1 ? {formula:guard([`${D}${r}`,ref(gi-1,D)], `${D}${r}-${ref(gi-1,D)}`)} : null,
+      gi>=1 ? {formula:guard([`${D}${r}`,ref(gi-1,D)], `ROUND(${ref(gi-1,D)}-${D}${r},1)`)} : null,
       gi>=1 ? {formula:guard([`${TH}${r}`,ref(gi-1,TH),`${D}${r}`,ref(gi-1,D)], `${GM3}${r}-${GT3}${r}`)} : null,
       cbOp(gi,6,true),
-      gi>=6 ? {formula:guard([`${TH}${r}`,ref(gi-6,TH)], `${TH}${r}-${ref(gi-6,TH)}`)} : null,
+      gi>=6 ? {formula:guard([`${TH}${r}`,ref(gi-6,TH)], `ROUND(${ref(gi-6,TH)}-${TH}${r},1)`)} : null,
       cbOp(gi,6,false),
-      gi>=6 ? {formula:guard([`${D}${r}`,ref(gi-6,D)], `${D}${r}-${ref(gi-6,D)}`)} : null,
+      gi>=6 ? {formula:guard([`${D}${r}`,ref(gi-6,D)], `ROUND(${ref(gi-6,D)}-${D}${r},1)`)} : null,
       gi>=6 ? {formula:guard([`${TH}${r}`,ref(gi-6,TH),`${D}${r}`,ref(gi-6,D)], `${GM18}${r}-${GT18}${r}`)} : null
     ];
     CB.blocks.forEach((b,bi)=>{
@@ -5007,7 +5017,7 @@ async function xlsxPreflight(tabKey){
 const XLSX_NAMES = {mad:['FC-MAD-ADV','FC-MAD-ADV.xlsx'], sc:['FC-Sous-couche','FC-SOUS-COUCHE.xlsx'],
   pilo:['FC-Pilotis','FC-PILOTIS.xlsx'], geo61:['Gauche','FC-GEO-61.xlsx'],
   courbe:['Gauche en courbe 1','FC-GEO-61-COURBE.xlsx'], jgp:['Ouverture joints','FC-JT-12.xlsx'],
-  trav:['FC Travelage-Equerrage','FC-TRAVELAGE-RER.xlsx'], jic:['FC-TRAV-06 JIC','FC-TRAV-06-JIC.xlsx'], rail:['FC-RAIL-61','FC-RAIL-61.xlsx']};
+  trav:['FC Travelage-Equerrage','FC-TRAVELAGE-RER.xlsx'], jic:['FC-TRAV-06 JIC','FC-TRAV-06-JIC.xlsx'], rail:['FC-RAIL-31','FC-RAIL-31.xlsx']};
 function ficheFileBase(tabKey){
   if(typeof fillName!=='function' || typeof currentChantier!=='function' || !currentChantier()) return docId(tabKey);
   return safeFileName(fillName(((store&&store.nameTpl)||{})[tabKey] || NAME_DEFAULT, nameValues(tabKey)));
@@ -5105,7 +5115,7 @@ async function exportXlsx(tabKey, csvFallback){
 
 const decisionState = {}; // tabKey -> {override, signatures:{realise,visa}}
 const docIds = {};
-const DOC_REFS = {mad:'FC-MAD-ADV', sc:'FC-BALL', pilo:'FC-PILO14', geo61:'FC-GEO-61', courbe:'FC-GEO-61C', jgp:'FC-JT-12', trav:'FC-TRAV', jic:'FC-TRAV06', rail:'FC-RAIL61'};
+const DOC_REFS = {mad:'FC-MAD-ADV', sc:'FC-BALL', pilo:'FC-PILO14', geo61:'FC-GEO-61', courbe:'FC-GEO-61C', jgp:'FC-JT-12', trav:'FC-TRAV', jic:'FC-TRAV06', rail:'FC-RAIL31'};
 function docId(tabKey){
   if(!docIds[tabKey]){
     const d = new Date();
@@ -5557,7 +5567,7 @@ function cbDiff(i, span, key){
   if(i<span) return null;      // continuité assurée d'une feuille à l'autre
   const a = num(stateCourbe.rows[i][key]), b = num(stateCourbe.rows[i-span][key]);
   if(a===null || b===null) return null;
-  return Math.round((a-b)*1000)/1000;
+  return Math.round((b-a)*1000)/1000;            // (A1) − (B1) : point précédent − point courant, comme sur la fiche
 }
 function cbGaucheTh(i, span){ return cbDiff(i, span, 'dth'); }
 function cbGaucheMes(i, span){ return cbDiff(i, span, 'devers'); }
@@ -6681,7 +6691,7 @@ async function buildJICBuffer(){
 
 
 /* ==========================================================
-   FICHE 9 — FC-RAIL-61 : RELEVÉ DE L'ÉTAT GRAISSEUX DES RAILS
+   FICHE 9 — FC-RAIL-31 : RELEVÉ DE L'ÉTAT GRAISSEUX DES RAILS
    Un relevé par PK ; sur chaque file, 4 zones du champignon (D, C, B, A — A = flanc de guidage), notées
    0 limaille · 1 sec · 2 aspect huileux · 3 fine couche (≤ 2 mm) · 4 plaques ou amas.
    Code couleur et intervention déduits de la note : 0 → limaille (jaune, graissage manuel du flanc de guidage) ;
@@ -6693,14 +6703,18 @@ const RAIL_SVG_EXT = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"435\" he
 const RAIL_ZONES_EXT = ['D','C','B','A'], RAIL_ZONES_INT = ['A','B','C','D'];
 const RAIL_FILE = ['Haute','Basse','Alignement'], RAIL_OPP = {Haute:'Basse', Basse:'Haute', Alignement:'Alignement'};
 const RAIL_NOTES = ['0 = Limaille','1 = Sec','2 = Aspect huileux','3 = Fine couche de graisse (inférieure ou égale à 2 mm)','4 = Plaques ou amas de graisse'];
-const RAIL_COL = { lim:{fill:'FFFFFF00', ink:'FF000000', name:'Limaille', act:'Graissage manuel du flanc de guidage', ui:'#FFF200'},
+/* Couleurs relevées sur la fiche d'origine. Texte toujours noir. En zone A, deux bleus :
+   note 3 (fine couche) = bleu clair, note 4 (plaques ou amas) = bleu franc. */
+const RAIL_COL = { lim:{fill:'FFFFFF00', ink:'FF000000', name:'Limaille', act:'Graissage manuel du flanc de guidage', ui:'#FFFF00'},
                    sec:{fill:'FFFF9900', ink:'FF000000', name:'Rail Sec', act:'Vous devez graisser', ui:'#FF9900'},
-                   gras:{fill:'FFFF0000', ink:'FFFFFFFF', name:'Rail Gras', act:'Vous devez dégraisser', ui:'#FF0000'},
-                   grasA:{fill:'FF3366FF', ink:'FFFFFFFF', name:'Rail Gras (partie A)', act:'Vous devez prévoir un dégraissage', ui:'#3366FF'} };
+                   gras:{fill:'FFFF0000', ink:'FF000000', name:'Rail Gras', act:'Vous devez dégraisser', ui:'#FF0000'},
+                   grasA3:{fill:'FF99CCFF', ink:'FF000000', name:'Rail gras sur partie A (3)', act:'Vous devez prévoir un dégraissage', ui:'#99CCFF'},
+                   grasA4:{fill:'FF3366FF', ink:'FF000000', name:'Rail gras sur partie A (4)', act:'Vous devez prévoir un dégraissage', ui:'#3366FF'} };
+const RAIL_FILE_INT_FILL='FFFFFFCC';
 const stateRail = { header:{go:'', ligne:'A', voie:'', pkDebut:'', pkFin:'', pas:'100', ficheDe:'', ficheA:''}, colorSec:false, rows:[], observations:'' };
 function railRow(pk){ return {id:uid(), pk:String(pk), fileExt:'', fileInt:'', ext:['','','',''], int:['','','','']}; }
 /* code couleur d'une note ; les rails secs (1) ne sont colorés que si l'option est activée (sinon la fiche vire à l'orange) */
-function railCode(v, zone, all){ v=String(v).trim(); if(v==='0') return 'lim'; if(v==='1') return (all||stateRail.colorSec)?'sec':''; if(v==='3'||v==='4') return zone==='A'?'grasA':'gras'; return ''; }
+function railCode(v, zone, all){ v=String(v).trim(); if(v==='0') return 'lim'; if(v==='1') return (all||stateRail.colorSec)?'sec':''; if(v==='3'||v==='4') return zone==='A'?(v==='3'?'grasA3':'grasA4'):'gras'; return ''; }
 function railGenerate(){
   const h=stateRail.header, a=num(h.pkDebut), b=num(h.pkFin), pas=Math.abs(num(h.pas)||100);
   if(a===null||b===null) return [];
@@ -6709,7 +6723,7 @@ function railGenerate(){
   return rows;
 }
 function railStats(){
-  const c={lim:0,sec:0,gras:0,grasA:0}; let filled=0, total=0;
+  const c={lim:0,sec:0,gras:0,grasA3:0,grasA4:0}; let filled=0, total=0;
   stateRail.rows.forEach(r=>{ RAIL_ZONES_EXT.forEach((z,i)=>{ total++; const v=r.ext[i]; if(v!==''){ filled++; const k=railCode(v,z,true); if(k) c[k]++; } });
     RAIL_ZONES_INT.forEach((z,i)=>{ total++; const v=r.int[i]; if(v!==''){ filled++; const k=railCode(v,z,true); if(k) c[k]++; } }); });
   return {...c, filled, total};
@@ -6742,7 +6756,8 @@ function renderRail(container){
   const leg=el('div',{class:'rail-legend'});
   leg.innerHTML=`<div class="rail-notes">${RAIL_NOTES.map(n=>`<span>${esc(n)}</span>`).join('')}</div>
     <div class="rail-imgs"><figure>${RAIL_SVG_EXT}<figcaption>File extérieure</figcaption></figure>
-      <div class="rail-codes">${Object.entries(RAIL_COL).map(([k,c])=>`<div><i style="background:${c.ui};color:${c.ink==='FFFFFFFF'?'#fff':'#000'}">${esc(c.name)}</i><span>${esc(c.act)}</span></div>`).join('')}</div>
+      <div class="rail-codes">${[['sec'],['gras'],['grasA3','grasA4'],['lim']].map(ks=>{ const c=RAIL_COL[ks[0]], lab=ks.length>1?'<i class="two"><b style="background:#99CCFF">Rail gras</b><b style="background:#3366FF">sur partie A</b></i>':`<i style="background:${c.ui}">${esc(c.name)}</i>`;
+        return `<div>${lab}<span>${esc(c.act)}${ks.length>1?' (3 = bleu clair, 4 = bleu franc)':''}</span></div>`; }).join('')}</div>
       <figure>${RAIL_SVG_INT}<figcaption>File intérieure</figcaption></figure></div>`;
   p2.appendChild(leg);
   const opt=el('div',{class:'btn-row', style:'margin-top:12px;align-items:center;gap:12px'});
@@ -6810,7 +6825,8 @@ function renderRail(container){
 }
 function railRefresh(container){
   const s=railStats(), e=container.querySelector('#rail-synth'); if(!e) return;
-  const items=Object.entries(RAIL_COL).map(([k,c])=>`<span class="rail-chip" style="--c:${c.ui}"><i></i>${s[k]} ${esc(c.name.toLowerCase())}${s[k]?' — '+esc(c.act.toLowerCase()):''}</span>`).join('');
+  const items=[['lim',s.lim],['sec',s.sec],['gras',s.gras],['grasA4',s.grasA3+s.grasA4]].map(([k,n])=>{ const c=RAIL_COL[k], nm=k==='grasA4'?'rail gras sur partie A':c.name.toLowerCase();
+    return `<span class="rail-chip" style="--c:${c.ui}"><i></i>${n} ${esc(nm)}${n?' — '+esc(c.act.toLowerCase()):''}</span>`; }).join('');
   e.innerHTML=`<div class="rail-progress">${s.filled} / ${s.total} zones notées</div>${items}`;
   refreshProgressStrip('rail-progress', ...genericProgress('rail'));
 }
@@ -6846,7 +6862,7 @@ function buildRailSheet(ws, wb){
       if(r===r1) b.top=st; if(r===r2) b.bottom=st; if(c===c1) b.left=st; if(c===c2) b.right=st; cell.border=b; } };
   const grid=(r1,r2,c1,c2)=>{ for(let r=r1;r<=r2;r++) for(let c=c1;c<=c2;c++) ws.getCell(r,c).border={top:B,bottom:B,left:B,right:B}; };
   // en-tête
-  put(1,1,1,'RER',{bold:true,size:10,h:'left'}); put(1,8,11,'FICHE DE CONTROLE N° FC - RAIL - 61',{size:8,h:'right'});
+  put(1,1,1,'RER',{bold:true,size:10,h:'left'}); put(1,8,11,'FICHE DE CONTROLE N° FC - RAIL - 31',{size:8,h:'right'});
   put(2,1,11,"RELEVE DE L'ETAT GRAISSEUX DES RAILS",{bold:true,size:13,u:true}); ws.getRow(2).height=20;
   put(4,1,1,'G. O.'); put(4,2,2,h.go||'',{fill:XC.input}); put(5,1,1,'Ligne'); put(5,2,2,h.ligne||'',{fill:XC.input}); put(6,1,1,'Voie N°'); put(6,2,2,h.voie||'',{fill:XC.input});
   grid(4,6,1,2); box(4,6,1,2,M);
@@ -6857,8 +6873,8 @@ function buildRailSheet(ws, wb){
   const img=(b64,col,row,w,hh)=>{ const id=wb.addImage({base64:b64, extension:'png'}); ws.addImage(id,{tl:{col,row}, ext:{width:w,height:hh}, editAs:'oneCell'}); };
   img(RAIL_IMG_EXT, 1.1, 9.15, 96, 93); img(RAIL_IMG_INT, 8.45, 9.15, 96, 93);   // sous la note 4 (ligne 9)
   put(10,5,7,'Code Couleur :',{size:9}); 
-  put(11,5,5,'Rail Sec',{fill:RAIL_COL.sec.fill,size:8}); put(11,6,7,'Rail Gras',{fill:RAIL_COL.gras.fill,color:RAIL_COL.gras.ink,size:8});
-  put(12,5,7,'Rail gras sur partie A',{fill:RAIL_COL.grasA.fill,color:RAIL_COL.grasA.ink,size:8});
+  put(11,5,5,'Rail Sec',{fill:RAIL_COL.sec.fill,size:8}); put(11,6,7,'Rail Gras',{fill:RAIL_COL.gras.fill,size:8});
+  put(12,5,5,'Rail gras',{fill:RAIL_COL.grasA3.fill,size:8}); put(12,6,7,'sur partie A',{fill:RAIL_COL.grasA4.fill,size:8});
   put(13,5,5,'Limaille',{fill:RAIL_COL.lim.fill,size:8});
   // tableau
   const R0=17;
@@ -6870,7 +6886,7 @@ function buildRailSheet(ws, wb){
   let r=R0+2;
   stateRail.rows.forEach(row=>{
     const pe=row.fileExt||'', pi=row.fileInt||'';
-    put(r,1,1,num(row.pk)!==null?num(row.pk):row.pk,{bold:true}); put(r,2,2,pe,{fill:XC.input}); put(r,7,7,pi,{fill:XC.calc});
+    put(r,1,1,num(row.pk)!==null?num(row.pk):row.pk,{bold:true}); put(r,2,2,pe,{fill:XC.input}); put(r,7,7,pi,{fill:RAIL_FILE_INT_FILL});
     RAIL_ZONES_EXT.forEach((z,i)=>{ const v=row.ext[i], k=railCode(v,z); put(r,3+i,3+i,v===''?'':(num(v)!==null?num(v):v),k?{fill:RAIL_COL[k].fill,color:RAIL_COL[k].ink,bold:true}:{}); });
     RAIL_ZONES_INT.forEach((z,i)=>{ const v=row.int[i], k=railCode(v,z); put(r,8+i,8+i,v===''?'':(num(v)!==null?num(v):v),k?{fill:RAIL_COL[k].fill,color:RAIL_COL[k].ink,bold:true}:{}); });
     ws.getRow(r).height=15; r++;
@@ -6879,7 +6895,10 @@ function buildRailSheet(ws, wb){
   // nature de l'intervention
   const N=r+1; ws.mergeCells(N,1,N+3,2); put(N,1,1,"Nature de l'intervention selon l'état graisseux",{wrap:true});
   [['Case(s) Orange(s) :','sec'],['Case(s) Rouge(s) :','gras'],['Case(s) Bleue(s) :','grasA'],['Case(s) Jaune(s) :','lim']].forEach(([lab,k],i)=>{
-    put(N+i,3,5,lab,{h:'right'}); put(N+i,6,7,RAIL_COL[k].name,{fill:RAIL_COL[k].fill,color:RAIL_COL[k].ink,size:8}); put(N+i,8,11,RAIL_COL[k].act,{bold:true,h:'left'}); ws.getRow(N+i).height=15; });
+    put(N+i,3,5,lab,{h:'right'});
+    if(k==='grasA'){ put(N+i,6,6,'Rail',{fill:RAIL_COL.grasA3.fill,size:8}); put(N+i,7,7,'Gras',{fill:RAIL_COL.grasA4.fill,size:8}); put(N+i,8,11,RAIL_COL.grasA3.act,{bold:true,h:'left'}); }
+    else { put(N+i,6,7,RAIL_COL[k].name,{fill:RAIL_COL[k].fill,size:8}); put(N+i,8,11,RAIL_COL[k].act,{bold:true,h:'left'}); }
+    ws.getRow(N+i).height=15; });
   box(N,N+3,1,11,M); box(N,N+3,1,2,M);
   // signatures (gauche et centre) et observations (droite, ≈ 45 % de la largeur), comme sur la fiche
   const d=ensureDecisionState('rail'), sr=d.signatures.realise||{}, sv=d.signatures.visa||{};
@@ -6901,7 +6920,7 @@ function buildRailSheet(ws, wb){
   const C=S+NL+2;
   put(C,1,11,"Ce document n'est pas en diffusion contrôlée.",{h:'left',size:8});
   put(C+1,1,11,"Sa validité est à vérifier sur le site http://govelins qui constitue la seule référence.",{h:'left',size:8});
-  put(C+2,1,3,'RATP - GDI - VOIE - PMM',{bold:true,size:8}); put(C+2,4,6,'Fiche de contrôle',{bold:true,size:8}); put(C+2,7,8,'RER',{bold:true,size:8}); put(C+2,9,10,'FC - RAIL - 61',{bold:true,size:8}); put(C+2,11,11,'Version : 2',{bold:true,size:8});
+  put(C+2,1,3,'RATP - GDI - VOIE - PMM',{bold:true,size:8}); put(C+2,4,6,'Fiche de contrôle',{bold:true,size:8}); put(C+2,7,8,'RER',{bold:true,size:8}); put(C+2,9,10,'FC - RAIL - 31',{bold:true,size:8}); put(C+2,11,11,'Version : 2',{bold:true,size:8});
   put(C+3,1,6,"RELEVE DE L'ETAT GRAISSEUX DES RAILS",{bold:true,size:8,h:'left'}); put(C+3,7,11,'Date de diffusion :',{bold:true,size:8});
   put(C+4,1,11,"Ce document est la propriété de la RATP. Il ne peut être transmis ou reproduit sans son accord.",{size:8,h:'left'});
   grid(C+2,C+4,1,11);   // (la dernière ligne est déjà fusionnée par put)
@@ -6917,7 +6936,7 @@ const TABS = [
   {key:'jgp', label:'FC-JT-12 JGP', render:renderJGP},
   {key:'trav', label:'FC Travelage RER', render:renderTrav},
   {key:'jic', label:'FC-TRAV-06 JIC', render:renderJIC},
-  {key:'rail', label:'FC-RAIL-61 État graisseux', render:renderRail},
+  {key:'rail', label:'FC-RAIL-31 État graisseux', render:renderRail},
 ];
 let activeTab = 'mad';
 var appView = 'chantier';   // 'home' | 'reseau' | 'chantier' — fixée au démarrage par le module chantiers
@@ -6974,6 +6993,8 @@ function renderAll(){
   if(typeof fitAllFields==='function') requestAnimationFrame(()=>fitAllFields(document.getElementById('tab-content')));
   if(typeof enhanceForTablet==='function') enhanceForTablet();
   if(typeof voiePickerize==='function') voiePickerize(document.getElementById('tab-content'));
+  if(typeof gaucheExtras==='function') gaucheExtras(document.getElementById('tab-content'));
+  if(typeof renderHistBottom==='function') renderHistBottom();
   const idEl = document.getElementById('mastheadDocId');
   if(idEl) idEl.textContent = docId(activeTab);
   const gen = new Date().toLocaleString('fr-FR', {dateStyle:'short', timeStyle:'short'});
@@ -7198,7 +7219,10 @@ function newChantier(nom, periode){
 }
 /* Dossier d'archivage par défaut du chantier d'automne (campagne RER A — RVB) */
 const AUTOMNE_DOSSIER = 'https://servcc.sharepoint.com/:f:/r/sites/--RERA-RVB-CampagneAutomne/Documents%20partages/Echange%20OIT-DGOA?d=w31715667966c4ecda6b908da51dc3cb4&csf=1&web=1&e=xii40b';
+const AUTOMNE_2026 = {rev:1, periode:'Automne', ligne:'A', interstation:'SUCY-BONNEUIL / BOISSY-ST-LEGER', entreprise:'EIFFAGE RAIL', voies:'V1bis, V2bis', pkDebut:'20990', pkFin:'21170'};
+function applyAutomne(c){ const {rev,...f}=AUTOMNE_2026; Object.assign(c,f); c.campagne='automne-2026'; c.updatedAt=Date.now(); }
 function applyDefaultFolders(s){
+  if((s.automneRev||0) < AUTOMNE_2026.rev){ s.chantiers.forEach(c=>{ if(isAutomne2026(c)) applyAutomne(c); }); s.automneRev=AUTOMNE_2026.rev; }   // à chaque nouvelle révision publiée
   if(!s.migrRail){ s.chantiers.forEach(c=>{ if(Array.isArray(c.fiches) && !c.fiches.includes('rail')) c.fiches.push('rail'); }); s.migrRail=true; }
   if(!s.migrJic){ s.chantiers.forEach(c=>{ if(Array.isArray(c.fiches) && !c.fiches.includes('jic')) c.fiches.push('jic'); }); s.migrJic=true; }
   if(s.migrAutomne) return s;                      // appliqué une seule fois : un choix ultérieur de l'utilisateur est respecté
@@ -7208,8 +7232,8 @@ function applyDefaultFolders(s){
 function loadStore(){
   try{ const s=JSON.parse(localStorage.getItem(STORE_KEY)||'null'); if(s && Array.isArray(s.chantiers)) return applyDefaultFolders(s); }catch(e){}
   // premier lancement : les deux chantiers annoncés, toutes les fiches RER sélectionnées
-  const aut=newChantier('Chantier automne 2026','Automne 2026'); aut.dossierTeams=AUTOMNE_DOSSIER;
-  return {chantiers:[newChantier('Chantier été 2026','Été 2026'), aut], activeId:null, migrAutomne:true};
+  const aut=newChantier('Chantier automne 2026','Automne 2026'); aut.dossierTeams=AUTOMNE_DOSSIER; applyAutomne(aut);
+  return {chantiers:[newChantier('Chantier été 2026','Été 2026'), aut], activeId:null, migrAutomne:true, automneRev:AUTOMNE_2026.rev};
 }
 let storeWarned=false;
 function saveStore(){
@@ -7471,19 +7495,7 @@ function renderChantierBar(){
   const more=el('button',{class:'btn cb-more', 'aria-haspopup':'menu', html:'⋯ Chantier'});
   more.addEventListener('click', e=>{ e.stopPropagation(); openChantierMenu(more, ch); });
   acts.append(manage, relay, more); top.appendChild(acts); bar.appendChild(top);
-  // historique du chantier (relais, archivages) : replié par défaut, déplié d'un toucher
-  const hist=(ch.historique||[]).slice().reverse();
-  if(hist.length){
-    const fmt=t=>new Date(t).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-    const box=el('div',{class:'cb-hist'+(store.histOpen?' open':'')});
-    const head=el('button',{type:'button', class:'cb-hist-h', 'aria-expanded':String(!!store.histOpen), html:
-      `<span class="cb-hist-t">Historique <b>${hist.length}</b></span><span class="cb-hist-last">${esc(hist[0].texte)} · ${fmt(hist[0].at)}</span><span class="cb-hist-chev" aria-hidden="true">▾</span>`});
-    head.addEventListener('click',()=>{ store.histOpen=!store.histOpen; box.classList.toggle('open',store.histOpen); head.setAttribute('aria-expanded',String(store.histOpen)); saveStore(); });
-    const list=el('ul',{class:'cb-hist-list'});
-    hist.slice(0,12).forEach(h=>list.appendChild(el('li',{html:`<span class="cb-hist-d">${fmt(h.at)}</span><span>${esc(h.texte)}</span>`})));
-    if(hist.length>12) list.appendChild(el('li',{class:'cb-hist-more', html:`… et ${hist.length-12} événement${hist.length-12>1?'s':''} plus ancien${hist.length-12>1?'s':''}`}));
-    box.append(head, list); bar.appendChild(box);
-  }
+  // l'historique du chantier est affiché en bas de page (renderHistBottom)
   const panel=el('div',{class:'cb-fiches', style:'display:none'});
   panel.appendChild(el('p',{class:'cb-hint', html:"Cochez les fiches de ce chantier. Une fiche retirée garde ses données : elles réapparaissent si vous la rajoutez."}));
   const grid=el('div',{class:'cb-grid'});
@@ -7521,8 +7533,8 @@ const nowFR = () => new Date().toLocaleString('fr-FR',{day:'2-digit',month:'2-di
 function tabletName(){
   return store.tablette || 'Tablette de chantier';
 }
-function chMeta(ch){ const {id,nom,periode,ligne,interstation,voies,postes,pkDebut,pkFin,secteur,entreprise,repEntreprise,controleur,dossierTeams,fiches}=ch;
-  return {id,nom,periode,ligne,interstation,voies,postes,pkDebut,pkFin,secteur,entreprise,repEntreprise,controleur,dossierTeams,fiches}; }
+function chMeta(ch){ const {id,nom,periode,ligne,interstation,voies,postes,pkDebut,pkFin,secteur,entreprise,repEntreprise,controleur,dossierTeams,fiches,campagne}=ch;
+  return {id,nom,periode,ligne,interstation,voies,postes,pkDebut,pkFin,secteur,entreprise,repEntreprise,controleur,dossierTeams,fiches,campagne}; }
 function logRelais(ch, texte){ (ch.historique=ch.historique||[]).push({at:Date.now(), texte}); }
 
 /* Signatures pour le QR : codées en noir et blanc, un bit par pixel, compressées — quelques
@@ -7897,7 +7909,7 @@ function newFiche(k){
    ===================================================================================== */
 const FICHE_TITLES = {mad:'Mise à disposition ADV', sc:'Sous-couche', pilo:'Pilotis', geo61:'Contrôle du gauche',
   courbe:'Gauche en courbe', jgp:'Joints à grand permissif', trav:'Travelage', jic:'Travelage JIC', rail:'État graisseux des rails'};
-const FICHE_CODES = {mad:'FC-MAD-ADV', sc:'FC', pilo:'FC-14', geo61:'FC-GEO-61', courbe:'FC-GEO-61', jgp:'FC-JT-12', trav:'FC', jic:'FC-TRAV-06', rail:'FC-RAIL-61'};   // comme les onglets : « FC Sous-couche », « FC Travelage »
+const FICHE_CODES = {mad:'FC-MAD-ADV', sc:'FC', pilo:'FC-14', geo61:'FC-GEO-61', courbe:'FC-GEO-61', jgp:'FC-JT-12', trav:'FC', jic:'FC-TRAV-06', rail:'FC-RAIL-31'};   // comme les onglets : « FC Sous-couche », « FC Travelage »
 function nameValues(k){
   const ch=currentChantier()||{}, S=STATE_REF[FICHE_STATE[k]]||{}, h=S.header||{};
   const frDate=d=>{ const m=String(d||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?`${m[3]}-${m[2]}-${m[1]}`:''; };
@@ -8268,6 +8280,198 @@ function openGuide(){
   const foot=el('div',{class:'btn-row', style:'justify-content:flex-end;margin-top:16px'});
   const ok=el('button',{class:'btn btn-primary', html:'C\u2019est parti'}); ok.addEventListener('click',()=>{ ov.remove(); store.guideSeen=true; saveStore(); });
   foot.appendChild(ok); box.appendChild(foot); ov.appendChild(box); document.body.appendChild(ov);
+}
+
+
+/* =====================================================================================
+   IMPORT D'UN RELEVÉ AMBER (chariot Geismar) dans une fiche de gauche (GEO-61, Courbe)
+   Le fichier HTML exporté par le chariot porte, en méta-données, la ligne, la voie, le PK de départ
+   et le sens ; son tableau donne, tous les 3 m : KM, mètres, écartement, dévers, commentaire.
+   On n'en reprend que les MESURES (PK, écartement, dévers) : les gauches 3 m et 18 m sont ensuite
+   calculés par la fiche elle-même, à l'écran comme dans l'Excel (formules conservées).
+   ===================================================================================== */
+/* ====== Fiche « Gauche AMBER » : lecture complète du HTML du chariot et mise en page RATP ====== */
+function amberRead(text){
+  const raw=k=>{ const m=text.match(new RegExp('data-field-'+k+'="(\\[[^"]*\\])"')); return m?m[1]:''; };
+  const first=k=>{ const m=raw(k).match(/\[(-?[\d.]+)\]/); return m?+m[1]:null; };
+  const str=k=>{ const m=raw(k).match(/^\[([^\[\]]*)\]$/); return m?m[1]:''; };
+  const fmtD=ms=>ms?new Date(+ms).toLocaleDateString('fr-FR',{timeZone:'Europe/Paris',day:'2-digit',month:'2-digit',year:'numeric'}):'';
+  const fmtH=ms=>ms?new Date(+ms).toLocaleTimeString('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit'}):'';
+  const pk=m=>m===null?'':`${Math.floor(m/1000)}+${String(Math.round(m%1000)).padStart(3,'0')}`;
+  const t0=+str('start-time')||0, t1=+str('end-time')||0;
+  const tw1=raw('twist-base-1').match(/\[(-?[\d.]+)\]\[m\]/), tw2=raw('twist-base-2').match(/\[(-?[\d.]+)\]\[m\]/);
+  const acq=raw('acquisition-rate').match(/\[(-?[\d.]+)\]\[m\]/);
+  const M={ route:str('route-id'), track:str('track-id'), dir:str('location-direction'), op:str('operator-id'),
+    profil:(str('profile').split('/').pop()||'').replace(/\.pro$/,''), job:(str('active-job-file').split('/').pop()||''),
+    pkDeb:pk(first('start-location')), pkFin:pk(first('end-location')), date:fmtD(t0), h0:fmtH(t0), h1:fmtH(t1),
+    version:str('software-version'), serie:str('serial-number'), etal:fmtD(str('calibration-date')),
+    ecRef:first('gauge-reference'), devRef:first('xlevel-reference'), polarite:str('xlevel-polarity'),
+    acq: acq?+acq[1]:null, base1: tw1?+tw1[1]:null, base2: tw2?+tw2[1]:null, temp0:first('start-temperature'), temp1:first('end-temperature'), seuils:str('profile-id') };
+  const doc=new DOMParser().parseFromString(text,'text/html'), trs=[...doc.querySelectorAll('tr')];
+  let hi=-1, col={};
+  trs.forEach((tr,i)=>{ if(hi>=0) return; const c=[...tr.cells].map(td=>td.textContent.trim()); const k=c.findIndex(x=>/^km$/i.test(x)), m=c.findIndex(x=>/^m[eè]tres?$/i.test(x));
+    if(k>=0&&m>=0){ hi=i; const f=re=>c.findIndex(x=>re.test(x)); col={km:k,m,ec:f(/ecart/i),dv:f(/d[eé]vers/i),g1:f(/^gauche\s*1/i),g2:f(/^gauche\s*2/i),r1:f(/rapport.*1/i),r2:f(/rapport.*2/i),cm:f(/comment/i)}; } });
+  if(hi<0) return null;
+  const rows=[];
+  trs.slice(hi+1).forEach(tr=>{ const td=[...tr.cells]; const g=i=>i>=0&&td[i]?td[i].textContent.trim():''; const cl=i=>i>=0&&td[i]?(td[i].className||''):'';
+    const km=g(col.km), m=g(col.m); if(!/^-?\d/.test(km)||!/^-?\d/.test(m)) return;
+    const mm=+km*1000+parseFloat(m.replace(',','.'));
+    rows.push({pk:pk(mm), ec:g(col.ec), dv:g(col.dv), g1:g(col.g1), g2:g(col.g2), r1:g(col.r1), r2:g(col.r2), cm:g(col.cm),
+      cls:{ec:cl(col.ec),dv:cl(col.dv),g1:cl(col.g1),g2:cl(col.g2),r1:cl(col.r1),r2:cl(col.r2)}}); });
+  return rows.length?{M,rows}:null;
+}
+const AMB_CLS={e1:'FF0000FF',e1o:'FF0000FF',e2:'FFFF8C00',e2o:'FFFF8C00',e3:'FFFF0000',e3o:'FFFF0000'};
+const AMB_BG={e0o:'FFADD8E6',e1o:'FFADD8E6',e2o:'FFADD8E6',e3o:'FFADD8E6',eo:'FFADD8E6',em:'FFDCDCDC'};
+function buildAmberSheet(ws, wb, A, kind, extra={}){
+  /* Mise en page dans le style des fiches de contrôle RATP (GEO-61, RAIL-31) : Arial, cadres épais,
+     séparations pointillées, cartouche RATP. Les valeurs sont celles du chariot, copiées sans recalcul. */
+  const M=A.M, K='FF000000', T={style:'thin',color:{argb:K}}, Md={style:'medium',color:{argb:K}}, H={style:'hair',color:{argb:K}};
+  const font=(o={})=>({name:'Parisine Office', size:o.size||9, bold:!!o.bold, italic:!!o.it, underline:!!o.u, color:{argb:K}});
+  ws.pageSetup={paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:0, margins:{left:0.45,right:0.45,top:0.4,bottom:0.4,header:0.2,footer:0.2}, horizontalCentered:true};
+  [11,13.5,9,10,10,7.5,7.5,7.5,7.5,7.5].forEach((w,i)=>ws.getColumn(i+1).width=w);
+  const NC=10, CY='FFCCFFFF', YL='FFFFFF99';   // cyan = saisie, jaune = calcul automatique (charte des fiches RATP)
+  const put=(r,c1,c2,v,o={})=>{ if(c2>c1) ws.mergeCells(r,c1,r,c2); const c=ws.getCell(r,c1); c.value=v; c.font=font(o); c.alignment={horizontal:o.h||'center',vertical:'middle',wrapText:!!o.wrap};
+    if(o.fill) for(let k=c1;k<=c2;k++) ws.getCell(r,k).fill={type:'pattern',pattern:'solid',fgColor:{argb:o.fill}}; if(o.fmt) c.numFmt=o.fmt; return c; };
+  const frame=(r1,r2,c1,c2,inner=H)=>{ for(let r=r1;r<=r2;r++) for(let c=c1;c<=c2;c++){ const b={top:r===r1?Md:inner, bottom:r===r2?Md:inner, left:c===c1?Md:T, right:c===c2?Md:T}; ws.getCell(r,c).border=b; } };
+  const vline=(r1,r2,c)=>{ for(let r=r1;r<=r2;r++){ const x=ws.getCell(r,c); x.border={...(x.border||{}), left:T}; } };
+  // en-tête
+  put(1,1,2,'RER',{bold:true,size:11,h:'left'}); put(1,6,NC,'FICHE DE CONTROLE · RELEVÉ AMBER',{size:8,h:'right'});
+  put(3,1,NC,'CONTROLE DU GAUCHE SUR LE RER',{bold:true,size:13,u:true}); ws.getRow(3).height=20;
+  put(4,1,NC,'Relevé réalisé au chariot de mesure AMBER',{it:true,size:9});
+  // identification
+  put(6,1,2,'Chantier',{h:'left'}); put(6,3,NC,extra.chantier||'',{h:'left',fill:CY,bold:true}); frame(6,6,1,NC); vline(6,6,3);
+  const L=[['Ligne',M.route],['Voie N°',M.track],['PK origine',M.pkDeb],['PK fin',M.pkFin],['Sens',/decrement/i.test(M.dir)?'PK décroissant':'PK croissant']];
+  const R=[['Date du relevé',M.date],['Heure de début',M.h0],['Heure de fin',M.h1],['Opérateur',M.op]];
+  L.forEach((x,i)=>{ put(8+i,1,2,x[0],{h:'left'}); put(8+i,3,4,x[1]||''); }); frame(8,8+L.length-1,1,4); vline(8,8+L.length-1,3);
+  R.forEach((x,i)=>{ put(8+i,6,8,x[0],{h:'left'}); put(8+i,9,NC,x[1]||''); }); frame(8,8+R.length-1,6,NC); vline(8,8+R.length-1,9);
+  // conditions de mesure
+  let r=8+L.length+1; put(r,1,NC,'1/  CONDITIONS DE MESURE',{bold:true,h:'left'});
+  const n=(v,u)=>v===null||v===undefined?'':`${String(v).replace('.',',')} ${u}`;
+  const CL=[['N° de série',M.serie],['Version du logiciel',M.version],['Étalonné le',M.etal]];
+  const CR=[['Écartement de référence',n(M.ecRef,'mm')],['Intervalle d’acquisition',n(M.acq,'m')],['Bases du gauche',[M.base1,M.base2].filter(v=>v!==null).map(v=>n(v,'m')).join(' et ')]];
+  const c0=r+1; CL.forEach((x,i)=>{ put(c0+i,1,2,x[0],{h:'left'}); put(c0+i,3,4,x[1]||''); }); frame(c0,c0+2,1,4); vline(c0,c0+2,3);
+  CR.forEach((x,i)=>{ put(c0+i,6,8,x[0],{h:'left'}); put(c0+i,9,NC,x[1]||''); }); frame(c0,c0+2,6,NC); vline(c0,c0+2,9);
+  // relevé
+  r=c0+4; put(r,1,NC,'2/  RELEVE DU GAUCHE',{bold:true,h:'left'});
+  const b1=M.base1!==null?String(M.base1).replace(/\.0$/,'').replace('.',','):'1', b2=M.base2!==null?String(M.base2).replace(/\.0$/,'').replace('.',','):'2';
+  const Hd=r+1;
+  [['P K',1,1],['ECARTEMENT\n(mm)',2,2],['DEVERS\n(mm)',3,3],[`GAUCHE\nSUR ${b1} M (mm)`,4,4],[`GAUCHE\nSUR ${b2} M (mm)`,5,5],['COMMENTAIRES',6,NC]].forEach(([t,a,b])=>put(Hd,a,b,t,{bold:true,size:8.5,wrap:true}));
+  ws.getRow(Hd).height=30;
+  const numv=v=>{ const x=String(v||'').replace(',','.'); return x===''||isNaN(+x)?v:+x; };
+  let rr=Hd+1;
+  A.rows.forEach(x=>{ put(rr,1,1,x.pk); [['ec',2],['dv',3],['g1',4],['g2',5]].forEach(([k,c])=>{ const cls=(x.cls[k]||'').split(/\s+/)[0];
+      put(rr,c,c,numv(x[k]),{bold:/^e[123]/.test(cls),fmt:'0.0',fill:(k==='g1'||k==='g2')?YL:undefined}); });   // gauches : calculés par le chariot
+    put(rr,6,NC,x.cm||'',{h:'left',size:8.5,fill:CY}); ws.getRow(rr).height=14; rr++; });
+  frame(Hd,rr-1,1,NC); for(let c=1;c<=NC;c++){ const x=ws.getCell(Hd,c); x.border={...x.border, bottom:Md}; }
+  ws.views=[{showGridLines:false, state:'frozen', ySplit:Hd}]; ws.pageSetup.printTitlesRow=`${Hd}:${Hd}`;
+  // observations
+  let O=rr+1; put(O,1,3,'Observations :',{u:true,h:'left'});
+  for(let i=0;i<3;i++){ const ro=O+1+i; put(ro,1,NC,(extra.obs||[])[i]||'',{h:'left',fill:CY}); for(let c=1;c<=NC;c++) ws.getCell(ro,c).border={bottom:{style:'dotted',color:{argb:K}}}; ws.getRow(ro).height=16; }
+  // décision et signatures
+  const D=O+5; put(D,1,NC,'DÉCISION',{bold:true,size:10});
+  put(D+1,1,5,(extra.decision==='c'?'☑':'☐')+'   CONFORME',{bold:true}); put(D+1,6,NC,(extra.decision==='nc'?'☑':'☐')+'   NON-CONFORME',{bold:true}); ws.getRow(D+1).height=20;
+  const S=D+2;
+  put(S,1,1,'Fait le :',{h:'right'}); put(S,2,4,extra.date1||'',{h:'left',fill:CY}); put(S,6,7,'Vérifié le :',{h:'right'}); put(S,8,NC,extra.date2||'',{h:'left',fill:CY});
+  put(S+1,1,1,'Par :',{h:'right'}); put(S+1,2,4,extra.nom1||'',{h:'left',fill:CY}); put(S+1,6,7,'Par :',{h:'right'}); put(S+1,8,NC,extra.nom2||'',{h:'left',fill:CY});
+  put(S+2,1,1,'Signature :',{h:'right'}); put(S+2,6,7,'Signature :',{h:'right'}); ws.getRow(S+2).height=30;
+  [[S,2,4],[S+1,2,4],[S,8,NC],[S+1,8,NC]].forEach(([q,a,b])=>{ for(let c=a;c<=b;c++) ws.getCell(q,c).border={bottom:{style:'dotted',color:{argb:K}}}; });
+  for(let r1=D;r1<=S+2;r1++) for(let c=1;c<=NC;c++){ const x=ws.getCell(r1,c), b={...(x.border||{})}; if(r1===D){b.top=Md; b.bottom=T;} if(r1===D+1) b.bottom=T; if(r1===S+2) b.bottom=Md; if(c===1) b.left=Md; if(c===NC) b.right=Md; if(c===6 && r1>D) b.left=T; x.border=b; }
+  // cartouche RATP
+  // légende RATP
+  const G=S+4; put(G,3,3,'',{fill:YL}); put(G,4,5,'calcul automatique',{size:8,h:'left'}); put(G,7,7,'',{fill:CY}); put(G,8,9,'saisie',{size:8,h:'left'});
+  [[G,3],[G,7]].forEach(([q,c])=>ws.getCell(q,c).border={top:T,bottom:T,left:T,right:T});
+  const C=G+2;
+  put(C,1,NC,"Ce document n'est pas en diffusion contrôlée.",{h:'left',size:8});
+  put(C+1,1,2,'RATP - GDI - VOIE',{bold:true,size:8}); put(C+1,3,4,'Fiche de contrôle',{bold:true,size:8}); put(C+1,5,6,'RER',{bold:true,size:8}); put(C+1,7,NC,'Relevé AMBER',{bold:true,size:8});
+  put(C+2,1,6,'CONTROLE DU GAUCHE SUR LE RER',{bold:true,size:8,h:'left'}); put(C+2,7,NC,'Date de diffusion :',{bold:true,size:8,h:'left'});
+  for(let q=C+1;q<=C+2;q++) for(let c=1;c<=NC;c++) ws.getCell(q,c).border={top:T,bottom:T,left:T,right:T};
+  ws.pageSetup.printArea=`A1:J${C+2}`;
+}
+
+/* ---- Bouton « Gauche AMBER » : HTML du chariot → fiche Excel et PDF (valeurs reprises sans recalcul) ---- */
+function openAmberTool(){
+  const st={file:null, A:null, chantier:(typeof currentChantier==='function' && currentChantier() && appView==='chantier') ? currentChantier().nom : '', kind:'alignement'};
+  const ov=el('div',{class:'fcq-modal'}), box=el('div',{class:'fcq-dialog arx'}); ov.appendChild(box); document.body.appendChild(ov);
+  const close=()=>ov.remove();
+  const fname=()=>{ const M=st.A.M; return safeFileName(['Gauche AMBER', st.kind==='courbe'?'Courbe clothoïde':'Alignement', st.chantier.trim(), M.track, M.pkDeb&&M.pkFin?`PK ${M.pkDeb} à ${M.pkFin}`:'', (M.date||'').replace(/\//g,'-')].filter(Boolean).join(' – ')); };
+  async function build(){ const wb=new ExcelJS.Workbook(); wb.creator='FCQ Digital'; buildAmberSheet(wb.addWorksheet('Gauche AMBER'), wb, st.A, st.kind, {chantier:st.chantier.trim()});
+    const buf=new Uint8Array(await wb.xlsx.writeBuffer()); return {buf, pdf: await xpBuildPdf(buf, fname()+'.xlsx')}; }
+  function view1(){
+    box.innerHTML='';
+    box.appendChild(el('div',{class:'arx-head', html:'<div><h3>Gauche AMBER</h3><div class="arx-sub">Relevé du chariot AMBER → fiche de contrôle Excel et PDF</div></div>'}));
+    // 1 — fichier
+    const s1=el('div',{class:'arx-step'}); s1.innerHTML='<div class="arx-n">1</div><div class="arx-t">Fichier du chariot</div>';
+    const inp=el('input',{type:'file', accept:'.html,.htm,text/html', hidden:''});
+    const pick=el('button',{class:'btn'+(st.A?'':' btn-primary'), html: st.A?'Changer de fichier':'Choisir le fichier HTML'}); pick.addEventListener('click',()=>inp.click());
+    const info=el('div',{class:'amb-info'});
+    if(st.A){ const M=st.A.M; info.innerHTML=`<b>${esc(st.file.name)}</b><span>${esc(M.route)} · voie ${esc(M.track)} · PK ${esc(M.pkDeb)} à ${esc(M.pkFin)} · ${esc(M.date)} ${esc(M.h0)} · ${esc(M.op||'—')} · <b>${st.A.rows.length} points</b> · gauche sur ${[M.base1,M.base2].filter(v=>v!==null).map(v=>String(v).replace(/\.0$/,'')+' m').join(' et ')}</span>`; }
+    else info.innerHTML='<span>Le fichier HTML exporté par le chariot (dossier Amber › Jobs).</span>';
+    inp.addEventListener('change',()=>{ const f=inp.files&&inp.files[0]; if(!f) return; const rd=new FileReader();
+      rd.onload=()=>{ const A=amberRead(String(rd.result||'')); if(!A){ uiAlert("Ce fichier n'est pas un relevé AMBER : aucun tableau de mesures n'a été trouvé.",'Fichier non reconnu'); return; } st.file=f; st.A=A; view1(); };
+      rd.readAsText(f,'utf-8'); });
+    const row=el('div',{class:'amb-file'}); row.append(pick, inp, info); s1.appendChild(row); box.appendChild(s1);
+    // 2 — chantier
+    const s2=el('div',{class:'arx-step'}); s2.innerHTML='<div class="arx-n">2</div><div class="arx-t">Nom du chantier <span class="req">*</span></div>';
+    const dl=el('datalist',{id:'amb-ch'}); (store.chantiers||[]).forEach(c=>dl.appendChild(el('option',{value:c.nom})));
+    const ci=el('input',{type:'text', class:'arx-name', list:'amb-ch', placeholder:'Ex. : Chantier automne 2026 — RVB Sucy-Bonneuil / Boissy-St-Léger'}); ci.value=st.chantier;
+    ci.addEventListener('input',()=>{ st.chantier=ci.value; refresh(); });
+    s2.append(ci, dl); box.appendChild(s2);
+    // 3 — type
+    const s3=el('div',{class:'arx-step'}); s3.innerHTML='<div class="arx-n">3</div><div class="arx-t">Type de voie</div>';
+    const seg=el('div',{class:'arx-seg'});
+    [['alignement','Alignement'],['courbe','Courbe / clothoïde']].forEach(([v,l])=>{ const b=el('button',{class:'arx-seg-b'+(st.kind===v?' on':''), html:l}); b.addEventListener('click',()=>{ st.kind=v; seg.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); }); seg.appendChild(b); });
+    s3.appendChild(seg); box.appendChild(s3);
+    const foot=el('div',{class:'arx-foot'}); const cancel=el('button',{class:'btn', html:'Annuler'}); cancel.addEventListener('click',close);
+    const go=el('button',{class:'btn btn-primary arx-go', html:'Créer la fiche'});
+    const hint=el('span',{class:'arx-help'});
+    const refresh=()=>{ const ok=!!st.A && st.chantier.trim().length>0; go.disabled=!ok; hint.textContent = !st.A ? 'Choisissez d’abord le fichier.' : (!st.chantier.trim() ? 'Indiquez le nom du chantier.' : ''); };
+    go.addEventListener('click',()=>busyRun(go, async ()=>{ const r=await build(); view2(r); }));
+    foot.append(hint, el('span',{class:'arx-sp'}), cancel, go); box.appendChild(foot); refresh();
+    if(st.A) setTimeout(()=>ci.focus(),0);
+  }
+  function view2(r){
+    const name=fname(), x=new File([r.buf], name+'.xlsx', {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), p=new File([r.pdf], name+'.pdf', {type:'application/pdf'});
+    const ch=(store.chantiers||[]).find(c=>c.nom===st.chantier.trim()); if(ch){ logRelais(ch, `Relevé AMBER converti — ${st.A.rows.length} points, PK ${st.A.M.pkDeb} à ${st.A.M.pkFin}, voie ${st.A.M.track}`); saveStore(); if(typeof renderHistBottom==='function') renderHistBottom(); }
+    box.innerHTML=`<div class="arx-ok"><div class="arx-okico">✓</div><h3>Fiche créée</h3><div class="arx-file">${esc(name)}</div></div>
+      <ol class="arx-steps"><li><span>${st.A.rows.length} points repris du chariot, sans recalcul</span></li><li><span>Chantier : <b>${esc(st.chantier.trim())}</b></span></li><li><span>À compléter sur la fiche : commentaires, observations, décision, signatures</span></li></ol>`;
+    const foot=el('div',{class:'arx-foot'});
+    const bp=el('button',{class:'btn', html:'PDF'}); bp.addEventListener('click',()=>triggerDownload(p, p.name));
+    const bx=el('button',{class:'btn', html:'Excel'}); bx.addEventListener('click',()=>triggerDownload(x, x.name));
+    foot.append(bp, bx);
+    if(navigator.canShare && navigator.canShare({files:[p]})){ const sh=el('button',{class:'btn', html:'Partager le PDF'}); sh.addEventListener('click',()=>navigator.share({files:[p], title:p.name}).catch(()=>{})); foot.appendChild(sh); }
+    foot.appendChild(el('span',{class:'arx-sp'}));
+    const again=el('button',{class:'btn', html:'Autre relevé'}); again.addEventListener('click',()=>{ st.file=null; st.A=null; view1(); });
+    const done=el('button',{class:'btn btn-primary', html:'Terminé'}); done.addEventListener('click',close);
+    foot.append(again, done); box.appendChild(foot);
+  }
+  view1();
+}
+
+/* NB de campagne : tolérances à apprécier visuellement (aucun automatisme dans le tableau) */
+function isAutomne2026(ch){ if(!ch) return false; const t=(ch.nom||'')+' '+(ch.periode||''); return ch.campagne==='automne-2026' || (/automne/i.test(t) && /2026/.test(t)); }
+function gaucheExtras(root){
+  if(!root || !['geo61','courbe'].includes(activeTab)) return;
+  const wrap=root.querySelector('.table-wrap'), panel=wrap && wrap.closest('.panel');
+  if(!panel || panel.querySelector('.nb-aut')) return;
+  if(isAutomne2026(currentChantier())) panel.insertBefore(el('div',{class:'nb-aut', html:'<b>NB — Automne 2026.</b> Tolérances à apprécier visuellement : <b>gauche sur 3 m : 6</b> · <b>gauche sur 18 m : 27</b>.'}), wrap);
+}
+/* Historique du chantier : en bas de page, replié, avec la possibilité de le vider */
+function renderHistBottom(){
+  const host=document.getElementById('hist-bottom'); if(!host) return; host.innerHTML='';
+  const ch=currentChantier(); if(appView!=='chantier' || !ch) return;
+  const hist=(ch.historique||[]).slice().reverse();
+  const fmt=t=>new Date(t).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  const box=el('div',{class:'cb-hist'+(store.histOpen?' open':'')});
+  const head=el('button',{type:'button', class:'cb-hist-h', 'aria-expanded':String(!!store.histOpen), html:
+    `<span class="cb-hist-t">Historique du chantier <b>${hist.length}</b></span><span class="cb-hist-last">${hist.length?esc(hist[0].texte)+' · '+fmt(hist[0].at):'Aucun événement'}</span><span class="cb-hist-chev" aria-hidden="true">▾</span>`});
+  head.addEventListener('click',()=>{ store.histOpen=!store.histOpen; box.classList.toggle('open',store.histOpen); head.setAttribute('aria-expanded',String(store.histOpen)); saveStore(); });
+  const list=el('ul',{class:'cb-hist-list'});
+  hist.slice(0,30).forEach(h=>list.appendChild(el('li',{html:`<span class="cb-hist-d">${fmt(h.at)}</span><span>${esc(h.texte)}</span>`})));
+  if(hist.length>30) list.appendChild(el('li',{class:'cb-hist-more', html:`… et ${hist.length-30} plus ancien${hist.length-30>1?'s':''}`}));
+  if(hist.length){ const clr=el('button',{class:'btn cb-hist-clear', html:'Vider l\u2019historique'});
+    clr.addEventListener('click', async ()=>{ if(await uiConfirm(`Vider l'historique du chantier (${hist.length} événement${hist.length>1?'s':''}) ? Les fiches et les archives ne sont pas touchées.`,{ok:'Vider',danger:true})){ ch.historique=[]; ch.updatedAt=Date.now(); flushChantier(); saveStore(); renderHistBottom(); } });
+    const li=el('li',{class:'cb-hist-actions'}); li.appendChild(clr); list.appendChild(li); }
+  box.append(head, list); host.appendChild(box);
 }
 
 /* ---------- démarrage ---------- */
