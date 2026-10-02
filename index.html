@@ -8299,7 +8299,21 @@ function amberDecodeBytes(buf){
       else if(/base64/i.test(head)){ const b=atob(body.replace(/[^A-Za-z0-9+/=]/g,'')); bytes=Uint8Array.from(b,c=>c.charCodeAt(0)); }
       if(bytes){ try{ t=new TextDecoder(cs).decode(bytes); }catch(e){ t=new TextDecoder('utf-8').decode(bytes); } } else t=body; }
   }
+  // contenu quoted-printable sans en-tête MIME (page enregistrée tronquée ou réécrite) : on le décode quand même
+  if(!/data-field-route-id="\[/.test(t) && /data-field-route-id=3D/.test(t)){
+    const q=t.replace(/=\r?\n/g,''); const out=[]; for(let i=0;i<q.length;i++){ const ch=q[i];
+      if(ch==='=' && /^[0-9A-F]{2}$/i.test(q.substr(i+1,2))){ out.push(parseInt(q.substr(i+1,2),16)); i+=2; } else for(const b of new TextEncoder().encode(ch)) out.push(b); }
+    t=new TextDecoder('utf-8').decode(new Uint8Array(out)); }
   return t;
+}
+/* ce que contient un fichier refusé : pour comprendre, sans deviner */
+function amberDiagnose(text){
+  const doc=new DOMParser().parseFromString(text,'text/html');
+  const fmt=/multipart\/related|MIME-Version:/i.test(text.slice(0,3000)) ? 'page enregistrée (MHTML)' : /<html|<!doctype/i.test(text.slice(0,500)) ? 'page HTML' : 'texte';
+  const marks=(text.match(/data-field-[a-z-]+=/g)||[]).length, rows=doc.querySelectorAll('tr').length;
+  const title=(doc.querySelector('title')||{}).textContent||'';
+  const snippet=(doc.body ? doc.body.textContent : text).replace(/\s+/g,' ').trim().slice(0,120);
+  return `Format : ${fmt} · marques AMBER : ${marks} · lignes de tableau : ${rows}${title?' · titre : « '+title.trim().slice(0,60)+' »':''}\nDébut du contenu : « ${snippet||'(vide)'} »`;
 }
 function amberRead(text){
   const raw=k=>{ const m=text.match(new RegExp('data-field-'+k+'="(\\[[^"]*\\])"')); return m?m[1]:''; };
@@ -8319,9 +8333,14 @@ function amberRead(text){
     acq: acq?+acq[1]:null, base1: tw1?+tw1[1]:null, base2: tw2?+tw2[1]:null, temp0:first('start-temperature'), temp1:first('end-temperature'), seuils:str('profile-id') };
   const doc=new DOMParser().parseFromString(text,'text/html'), trs=[...doc.querySelectorAll('tr')];
   let hi=-1, col={};
-  trs.forEach((tr,i)=>{ if(hi>=0) return; const c=[...tr.cells].map(td=>td.textContent.trim()); const k=c.findIndex(x=>/^km$/i.test(x)), m=c.findIndex(x=>/^m[eè]tres?$/i.test(x));
+  trs.forEach((tr,i)=>{ if(hi>=0) return; const c=[...tr.cells].map(td=>td.textContent.trim()); const k=c.findIndex(x=>/^km$/i.test(x)), m=c.findIndex(x=>/^m.{0,2}tres?$/i.test(x));   /* « Mètres », même si l'accent a été altéré */
     if(k>=0&&m>=0){ hi=i; const f=re=>c.findIndex(x=>re.test(x)); col={km:k,m,ec:f(/ecart/i),dv:f(/d[eé]vers/i),g1:f(/^gauche\s*1/i),g2:f(/^gauche\s*2/i),r1:f(/rapport.*1/i),r2:f(/rapport.*2/i),cm:f(/comment/i)}; } });
-  if(hi<0) return null;
+  if(hi<0){   // intitulés altérés : on cherche les lignes « km, mètres, écartement, dévers… » purement numériques
+    const isNum=x=>/^-?\d+([.,]\d+)?$/.test(x);
+    const first=trs.findIndex(tr=>{ const c=[...tr.cells].map(td=>td.textContent.trim()); return c.length>=4 && isNum(c[0]) && isNum(c[1]) && isNum(c[2]) && isNum(c[3]) && +String(c[2]).replace(',','.')>1000; });
+    if(first<0) return null;
+    hi=first-1; col={km:0,m:1,ec:2,dv:3,g1:4,g2:5,r1:6,r2:7,cm:8};
+  }
   const rows=[];
   trs.slice(hi+1).forEach(tr=>{ const td=[...tr.cells]; const g=i=>i>=0&&td[i]?td[i].textContent.trim():''; const cl=i=>i>=0&&td[i]?(td[i].className||''):'';
     const km=g(col.km), m=g(col.m); if(!/^-?\d/.test(km)||!/^-?\d/.test(m)) return;
@@ -8455,7 +8474,12 @@ function openAmberTool(){
       rd.onload=()=>{ const A=amberRead(amberDecodeBytes(rd.result));
         if(!A){ const u=new Uint8Array(rd.result).subarray(0,8), img=/^image\//.test(f.type) || (u[0]===0xFF&&u[1]===0xD8) || (u[0]===0x89&&u[1]===0x50);
           const kb=f.size<1024 ? f.size+' octets' : Math.round(f.size/1024)+' Ko';
-          uiAlert(`Le fichier choisi n'est pas un relevé AMBER : aucun tableau de mesures n'y a été trouvé.\n\nFichier reçu : ${f.name||'(sans nom)'} · ${f.type||'type inconnu'} · ${kb}${img?'\nC’est une image (photo) : le fichier du chariot n’est pas dans « Photos et vidéos ».':''}\n\nTouchez à nouveau « Choisir le fichier HTML », puis choisissez « Mes fichiers » (ou « Fichiers ») et ouvrez le dossier où le chariot enregistre ses rapports HTML.`,'Fichier non reconnu'); return; }
+          const diag=img ? '' : '\n'+amberDiagnose(amberDecodeBytes(rd.result));
+          const msg=`Le fichier choisi n'est pas un relevé AMBER : aucun tableau de mesures n'y a été trouvé.\nFichier reçu : ${f.name||'(sans nom)'} · ${f.type||'type inconnu'} · ${kb}${img?'\nC’est une image (photo) : le fichier du chariot n’est pas dans « Photos et vidéos ».':''}${diag}\nSi le fichier vient de Teams, OneDrive ou d’un e-mail, enregistrez le fichier lui-même, pas sa page d’aperçu.`;
+          const canShare=navigator.canShare && navigator.canShare({files:[f]});
+          if(canShare) uiConfirm(msg,{title:'Fichier non reconnu', ok:'Partager ce fichier', cancel:'Fermer'}).then(go=>{ if(go) navigator.share({files:[f], title:f.name}).catch(()=>{}); });
+          else uiAlert(msg,'Fichier non reconnu');
+          return; }
         st.file=f; st.A=A; if(!st.nom1) st.nom1=A.M.op||''; if(!st.d1) st.d1=isoOf(A.M.date); view1(); };
       rd.readAsArrayBuffer(f); });
     const row=el('div',{class:'amb-file'}); row.append(pick, inp, info); s1.appendChild(row); box.appendChild(s1);
