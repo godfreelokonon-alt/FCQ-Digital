@@ -8443,13 +8443,19 @@ function openAmberTool(){
     box.appendChild(el('div',{class:'arx-head', html:'<div><h3>Gauche AMBER</h3><div class="arx-sub">Relevé du chariot AMBER → fiche de contrôle Excel et PDF</div></div>'}));
     // 1 — fichier
     const s1=el('div',{class:'arx-step'}); s1.innerHTML='<div class="arx-n">1</div><div class="arx-t">Fichier du chariot</div>';
-    const inp=el('input',{type:'file', hidden:''});   // sans filtre : sur tablette, un HTML téléchargé n'est pas toujours reconnu comme tel ; le contenu est vérifié à la lecture
+    /* filtre « documents » : sur Android, un champ sans filtre ouvre l'appareil photo et la galerie ;
+       avec des types de documents, le gestionnaire de fichiers s'ouvre. « octet-stream » garde sélectionnable
+       un HTML que la tablette n'aurait pas identifié. Le contenu est de toute façon vérifié à la lecture. */
+    const inp=el('input',{type:'file', hidden:'', accept:'.html,.htm,.mht,.mhtml,text/html,application/xhtml+xml,multipart/related,application/x-mimearchive,text/plain,application/octet-stream'});
     const pick=el('button',{class:'btn'+(st.A?'':' btn-primary'), html: st.A?'Changer de fichier':'Choisir le fichier HTML'}); pick.addEventListener('click',()=>inp.click());
     const info=el('div',{class:'amb-info'});
     if(st.A){ const M=st.A.M; info.innerHTML=`<b>${esc(st.file.name)}</b><span>${esc(M.route)} · voie ${esc(M.track)} · PK ${esc(M.pkDeb)} à ${esc(M.pkFin)} · ${esc(M.date)} ${esc(M.h0)} · ${esc(M.op||'—')} · <b>${st.A.rows.length} points</b> · gauche sur ${[M.base1,M.base2].filter(v=>v!==null).map(v=>String(v).replace(/\.0$/,'')+' m').join(' et ')}</span>`; }
-    else info.innerHTML='<span>Le fichier HTML exporté par le chariot (dossier Amber › Jobs).</span>';
+    else info.innerHTML='<span>Le fichier HTML exporté par le chariot AMBER, choisi dans « Mes fichiers ».</span>';
     inp.addEventListener('change',()=>{ const f=inp.files&&inp.files[0]; if(!f) return; const rd=new FileReader();
-      rd.onload=()=>{ const A=amberRead(amberDecodeBytes(rd.result)); if(!A){ uiAlert("Ce fichier n'est pas un relevé AMBER : aucun tableau de mesures n'a été trouvé.",'Fichier non reconnu'); return; }
+      rd.onload=()=>{ const A=amberRead(amberDecodeBytes(rd.result));
+        if(!A){ const u=new Uint8Array(rd.result).subarray(0,8), img=/^image\//.test(f.type) || (u[0]===0xFF&&u[1]===0xD8) || (u[0]===0x89&&u[1]===0x50);
+          const kb=f.size<1024 ? f.size+' octets' : Math.round(f.size/1024)+' Ko';
+          uiAlert(`Le fichier choisi n'est pas un relevé AMBER : aucun tableau de mesures n'y a été trouvé.\n\nFichier reçu : ${f.name||'(sans nom)'} · ${f.type||'type inconnu'} · ${kb}${img?'\nC’est une image (photo) : le fichier du chariot n’est pas dans « Photos et vidéos ».':''}\n\nTouchez à nouveau « Choisir le fichier HTML », puis choisissez « Mes fichiers » (ou « Fichiers ») et ouvrez le dossier où le chariot enregistre ses rapports HTML.`,'Fichier non reconnu'); return; }
         st.file=f; st.A=A; if(!st.nom1) st.nom1=A.M.op||''; if(!st.d1) st.d1=isoOf(A.M.date); view1(); };
       rd.readAsArrayBuffer(f); });
     const row=el('div',{class:'amb-file'}); row.append(pick, inp, info); s1.appendChild(row); box.appendChild(s1);
