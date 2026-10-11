@@ -3654,17 +3654,11 @@ function jgpSchemaPNG(sc){
     const cv = document.createElement('canvas');
     if(!cv || typeof cv.getContext !== 'function') return null;
     const S = 3;                                   // sur-échantillonnage : net à l'impression
-    /* ExcelJS modélise les décalages intra-cellule avec sa propre échelle (largeur × 10000)
-       et ne sait donc pas restituer un colOff/rowOff en EMU réels. On intègre ces décalages
-       dans l'image, en marge transparente, et on ancre au coin de la cellule : le dessin
-       tombe exactement où la fiche source le place. */
-    const padX = sc.from[1]/EMU_PX, padY = sc.from[3]/EMU_PX;
-    const W = padX + sc.w/EMU_PX, H = padY + sc.h/EMU_PX;
+    const W = sc.w/EMU_PX, H = sc.h/EMU_PX;
     cv.width = Math.round(W*S); cv.height = Math.round(H*S);
     const ctx = cv.getContext('2d');
     if(!ctx || typeof ctx.beginPath !== 'function') return null;
     ctx.scale(S,S);
-    ctx.translate(padX, padY);
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = JGP_LN/EMU_PX;
     ctx.lineCap = 'butt';
@@ -3682,7 +3676,7 @@ function jgpSchemaPNG(sc){
     sc.texts.forEach(([x,y,t])=>ctx.fillText(t, x/EMU_PX + ins, y/EMU_PX + ins));
     const url = cv.toDataURL('image/png');
     if(typeof url !== 'string' || url.indexOf('data:image/png') !== 0) return null;
-    return {url, width:W, height:H};
+    return url;
   }catch(e){ return null; }   // environnement sans canvas : la fiche s'exporte sans schéma
 }
 
@@ -3756,16 +3750,15 @@ function buildJGPSheet(ws, wb){
   put(16,1,1,"Deuxième cas : Raccord d'un LRS sur un appareil ou un groupe d'appareils soudés",{font:A,bold:true,v:'bottom'});
   put(18,2,2,'Appareils soudés',{font:A,bold:true,h:'center',v:'bottom'});
   put(20,8,9,'Voie en LRS',{font:A,bold:true,h:'center',v:'bottom'});
-  /* Schémas : géométrie et position repris de la fiche source. */
+  /* Schémas : géométrie et ancrage repris de la fiche source. Ancré de cellule à cellule, avec les
+     décalages en EMU d'origine (nativeColOff…), le dessin suit la largeur des colonnes comme dans
+     la fiche : il s'arrête au même endroit dans Excel, l'aperçu et le PDF. */
+  const at = ([col,colOff,row,rowOff]) => ({nativeCol:col, nativeColOff:colOff, nativeRow:row, nativeRowOff:rowOff});
   JGP_SCHEMAS.forEach(sc=>{
     const png = jgpSchemaPNG(sc);
     if(!png) return;                 // pas de canvas : la fiche reste correcte, sans schéma
-    const id = wb.addImage({base64:png.url.split(',')[1], extension:'png'});
-    ws.addImage(id, {
-      tl:{col:sc.from[0], row:sc.from[2]},
-      ext:{width:png.width, height:png.height},
-      editAs:'oneCell'
-    });
+    const id = wb.addImage({base64:png.split(',')[1], extension:'png'});
+    ws.addImage(id, {tl:at(sc.from), br:at(sc.to), editAs:'oneCell'});
   });
 
   /* ---------- Règles ---------- */
@@ -4561,7 +4554,16 @@ function xpUsedBox(wb, sh, A){
     }
     if(visibleFill||border||val){ mark(cell.r,cell.c); const m=masters.get(xpKey(cell.r,cell.c)); if(m) mark(m.r2,m.c2); }
   }
-  for(const im of sh.images) if(im.from){ mark(im.from.r, im.from.c); if(im.to) mark(im.to.r, Math.max(im.from.c, im.to.c-1)); }
+  // image ancrée par un seul coin (schémas JGP, profils RAIL-31) : sa taille dit jusqu'où elle s'étend,
+  // sinon la page est rognée avant sa fin et l'image déborde du cadre
+  const reach=(i, off, len, size, max)=>{ let rest=off/XP_EMU_PT+len; while(rest>size(i) && i<max){ rest-=size(i); i++; } return i; };
+  for(const im of sh.images) if(im.from){
+    mark(im.from.r, im.from.c);
+    // ancrée de cellule à cellule : son bord droit est dans la colonne d'arrivée, ou plus loin si le décalage dépasse cette colonne
+    if(im.to) mark(im.to.r, im.to.co>0 ? reach(im.to.c, im.to.co, 0, c=>xpColW(sh,c), A.c2) : Math.max(im.from.c, im.to.c-1));
+    else if(im.ext) mark(reach(im.from.r, im.from.ro, im.ext.cy/XP_EMU_PT, r=>xpRowH(sh,r), A.r2),
+                         reach(im.from.c, im.from.co, im.ext.cx/XP_EMU_PT, c=>xpColW(sh,c), A.c2));
+  }
   if(!isFinite(r1)) return A;
   return {r1, r2, c1, c2};
 }
