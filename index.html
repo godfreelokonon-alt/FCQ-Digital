@@ -7020,6 +7020,23 @@ document.addEventListener('input', ()=>{
   if(!GENERIC_REQ[activeTab]) return;
   const [f,t]=genericProgress(activeTab); refreshProgressStrip(activeTab+'-progress', f, t);
 });
+/* Finitions de la fiche affichée : clavier numérique, voie et poste en boutons, NB de campagne, largeur des champs.
+   Appliquées par renderAll, et aussi quand une fiche se redessine elle-même (ajout de ligne, choix du cadre JGP…) :
+   sans cela, les boutons de voie disparaissaient. Chaque étape ignore ce qui est déjà en place. */
+function finishFiche(content){
+  if(typeof enhanceForTablet==='function') enhanceForTablet(content);
+  if(typeof voiePickerize==='function') voiePickerize(content);
+  if(typeof gaucheExtras==='function') gaucheExtras(content);
+  if(typeof fitAllFields==='function') requestAnimationFrame(()=>fitAllFields(content));
+}
+{ const content=document.getElementById('tab-content'); let pending=false;
+  new MutationObserver(recs=>{
+    if(pending || appView!=='chantier') return;
+    // seulement quand de nouveaux champs apparaissent, pas à chaque résultat de calcul affiché
+    if(!recs.some(r=>[...r.addedNodes].some(n=>n.nodeType===1 && (n.tagName==='INPUT' || n.querySelector('input'))))) return;
+    pending=true; queueMicrotask(()=>{ pending=false; finishFiche(content); });
+  }).observe(content, {childList:true, subtree:true});
+}
 function renderAll(){
   if(appView!=='chantier' && typeof renderApp==='function'){ renderApp(); return; }
   renderTabs();
@@ -7031,10 +7048,7 @@ function renderAll(){
   if(typeof applyRelaisLock==='function') applyRelaisLock();
   if(typeof rememberPosition==='function') rememberPosition();
   if(typeof applyArchiveBanner==='function') applyArchiveBanner();
-  if(typeof fitAllFields==='function') requestAnimationFrame(()=>fitAllFields(document.getElementById('tab-content')));
-  if(typeof enhanceForTablet==='function') enhanceForTablet();
-  if(typeof voiePickerize==='function') voiePickerize(document.getElementById('tab-content'));
-  if(typeof gaucheExtras==='function') gaucheExtras(document.getElementById('tab-content'));
+  finishFiche(content);
   if(typeof renderHistBottom==='function') renderHistBottom();
   const idEl = document.getElementById('mastheadDocId');
   if(idEl) idEl.textContent = docId(activeTab);
@@ -7330,7 +7344,11 @@ function applyChantierDefaults(ch){
   [stateMad, stateSC, statePilo, stateTrav, stateJIC].forEach(st=>set(st.header,'voie',vUni));
   set(stateJIC.header,'ligne',ch.ligne);
   { const ps=splitList(ch.postes); if(ps.length===1) [stateTrav, stateJIC].forEach(st=>set(st.header,'poste',ps[0])); }
-  [stateGeo61, stateCourbe, stateJGP, stateRail].forEach(st=>{ set(st.header,'ligne',ch.ligne); set(st.header,'go', ch.ligne?`Ligne ${ch.ligne}`:''); set(st.header,'voie',vNum); });
+  [stateGeo61, stateCourbe, stateJGP, stateRail].forEach(st=>{ set(st.header,'ligne',ch.ligne); set(st.header,'voie',vNum); });
+  [stateGeo61, stateCourbe, stateRail].forEach(st=>set(st.header,'go', ch.ligne?`Ligne ${ch.ligne}`:''));
+  // JT-12 : G. O. est une liste de la fiche (LA, LB, MET 1, MET 2) ; « Ligne A », reporté auparavant, n'en fait pas partie
+  if(/^Ligne /.test(stateJGP.header.go)) stateJGP.header.go='';
+  set(stateJGP.header,'go', JGP_GO.includes('L'+ch.ligne) ? 'L'+ch.ligne : '');
   [stateGeo61, stateCourbe].forEach(st=>set(st.header,'interstation',ch.interstation));
   // date du jour par défaut ; l'utilisateur peut en choisir une autre
   const today=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
